@@ -4,7 +4,7 @@ venv/
 
 data/ace_2005_td_v7
 
-data/dev.json
+data/test.json
 data/train.json
 data/dev.json
 
