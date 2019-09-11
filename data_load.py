@@ -15,7 +15,7 @@ all_entities, entity2idx, idx2entity = build_vocab(ENTITIES)
 tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
 
 
-class Dataset(data.Dataset):
+class ACE2005Dataset(data.Dataset):
     def __init__(self, fpath):
         self.sent_li, self.triggers_li, self.arguments_li, self.entities_li = [], [], [], []
         with open(fpath, 'r') as f:
@@ -24,7 +24,7 @@ class Dataset(data.Dataset):
                 words = item['words']
                 triggers = [NONE] * len(words)
                 arguments = [NONE] * len(words)
-                entities = [[]] * len(words)
+                entities = [[NONE]] * len(words)
 
                 for event_mention in item['golden-event-mentions']:
                     for i in range(event_mention['trigger']['start'], event_mention['trigger']['end']):
@@ -46,9 +46,14 @@ class Dataset(data.Dataset):
                     for i in range(entity_mention['start'], entity_mention['end']):
                         entity_type = entity_mention['entity-type']
                         if i == entity_mention['start']:
-                            entities[i].append('B-{}'.format(entity_type))
+                            entity_type = 'B-{}'.format(entity_type)
                         else:
-                            entities[i].append('I-{}'.format(entity_type))
+                            entity_type = 'I-{}'.format(entity_type)
+
+                        if len(entities[i]) == 1 and entities[i][0] == NONE:
+                            entities[i][0] = entity_type
+                        else:
+                            entities[i].append(entity_type)
 
                 self.sent_li.append([CLS] + words + [SEP])
                 self.triggers_li.append([PAD] + triggers + [PAD])
@@ -77,7 +82,7 @@ class Dataset(data.Dataset):
 
             t = [trigger2idx[each] for each in t]
             a = [argument2idx[each] for each in a]
-            e = [[entity2idx[entity] for entity in each] for each in e]
+            e = [[entity2idx[entity] for entity in entities] for entities in e]
 
             is_heads.extend(is_head)
             tokens_x.extend(t), entities_x.extend(e)
@@ -85,22 +90,19 @@ class Dataset(data.Dataset):
 
         seqlen = len(triggers_y)
 
-        return tokens_x, entities_x, triggers_y, arguments_y, seqlen
+        return tokens_x, entities_x, triggers_y, arguments_y, seqlen, is_heads
 
 
 def pad(batch):
-    '''Pads to the longest sample'''
-    f = lambda x: [sample[x] for sample in batch]
-    words = f(0)
-    is_heads = f(2)
-    tags = f(3)
-    seqlens = f(-1)
-    maxlen = np.array(seqlens).max()
+    tokens_x_2d, entities_x_3d, triggers_y_2d, arguments_y_2d, seqlen_1d, is_heads_2d = zip(*batch)
+    maxlen = np.array(seqlen_1d).max()
 
-    f = lambda x, seqlen: [sample[x] + [0] * (seqlen - len(sample[x])) for sample in batch]  # 0: <s>
-    x = f(1, maxlen)
-    y = f(-2, maxlen)
+    for i in range(len(tokens_x_2d)):
+        tokens_x_2d[i] = tokens_x_2d[i] + [0] * (maxlen - len(tokens_x_2d[i]))
+        triggers_y_2d[i] = triggers_y_2d[i] + [trigger2idx[PAD]] * (maxlen - len(triggers_y_2d[i]))
+        arguments_y_2d[i] = arguments_y_2d[i] + [argument2idx[PAD]] * (maxlen - len(arguments_y_2d[i]))
+        entities_x_3d[i] = entities_x_3d[i] + [entity2idx[PAD]] * (maxlen - len(entities_x_3d[i]))
 
-    f = torch.LongTensor
-
-    return words, f(x), is_heads, tags, f(y), seqlens
+    return torch.LongTensor(tokens_x_2d), torch.LongTensor(entities_x_3d), \
+           torch.LongTensor(triggers_y_2d), torch.LongTensor(arguments_y_2d), \
+           seqlen_1d, is_heads_2d
