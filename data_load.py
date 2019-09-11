@@ -89,13 +89,15 @@ class ACE2005Dataset(data.Dataset):
             triggers_y.extend(t), arguments_y.extend(a)
 
         seqlen = len(triggers_y)
+        words = ' '.join(words)
+        triggers = ' '.join(triggers_y)
 
-        return tokens_x, entities_x, triggers_y, arguments_y, seqlen, is_heads
+        return tokens_x, entities_x, triggers_y, arguments_y, seqlen, is_heads, words, triggers
 
 
 def pad(batch):
-    tokens_x_2d, entities_x_3d, triggers_y_2d, arguments_y_2d, seqlen_1d, is_heads_2d = zip(*batch)
-    maxlen = np.array(seqlen_1d).max()
+    tokens_x_2d, entities_x_3d, triggers_y_2d, arguments_y_2d, seqlens_1d, is_heads_2d, words_2d, triggers_2d = zip(*batch)
+    maxlen = np.array(seqlens_1d).max()
 
     for i in range(len(tokens_x_2d)):
         tokens_x_2d[i] = tokens_x_2d[i] + [0] * (maxlen - len(tokens_x_2d[i]))
@@ -105,4 +107,4 @@ def pad(batch):
 
     return torch.LongTensor(tokens_x_2d), torch.LongTensor(entities_x_3d), \
            torch.LongTensor(triggers_y_2d), torch.LongTensor(arguments_y_2d), \
-           seqlen_1d, is_heads_2d
+           seqlens_1d, is_heads_2d, words_2d, triggers_2d
