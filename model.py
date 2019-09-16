@@ -43,7 +43,7 @@ class Net(nn.Module):
 class MultiLabelEmbeddingLayer(nn.Module):
     def __init__(self,
                  num_embeddings=None, embedding_dim=None,
-                 dropout=0.5, padding_idx=None,
+                 dropout=0.5, padding_idx=0,
                  max_norm=None, norm_type=2,
                  device=torch.device("cpu")):
         super(MultiLabelEmbeddingLayer, self).__init__()

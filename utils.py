@@ -10,3 +10,10 @@ def build_vocab(labels):
     idx2label = {idx: tag for idx, tag in enumerate(all_labels)}
 
     return all_labels, label2idx, idx2label
+
+
+def print_entities_3d(entities, idx2entity):
+    result = []
+    for item in entities:
+        result.append([idx2entity[idx] for idx in item])
+    print(result)

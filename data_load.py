@@ -27,7 +27,7 @@ class ACE2005Dataset(data.Dataset):
                 words = item['words']
                 triggers = [NONE] * len(words)
                 arguments = [NONE] * len(words)
-                entities = [[NONE]] * len(words)
+                entities = [[NONE] for _ in range(len(words))]
 
                 for event_mention in item['golden-event-mentions']:
                     for i in range(event_mention['trigger']['start'], event_mention['trigger']['end']):
@@ -107,7 +107,7 @@ def pad(batch):
         tokens_x_2d[i] = tokens_x_2d[i] + [0] * (maxlen - len(tokens_x_2d[i]))
         triggers_y_2d[i] = triggers_y_2d[i] + [trigger2idx[PAD]] * (maxlen - len(triggers_y_2d[i]))
         arguments_y_2d[i] = arguments_y_2d[i] + [argument2idx[PAD]] * (maxlen - len(arguments_y_2d[i]))
-        entities_x_3d[i] = entities_x_3d[i] + [[entity2idx[PAD]]] * (maxlen - len(entities_x_3d[i]))
+        entities_x_3d[i] = entities_x_3d[i] + [[entity2idx[PAD]] for _ in range(maxlen - len(entities_x_3d[i]))]
 
     # tokens_x_2d = np.array(tokens_x_2d)
     # entities_x_3d = np.array(entities_x_3d)
