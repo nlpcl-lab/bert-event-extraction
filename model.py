@@ -11,12 +11,13 @@ class Net(nn.Module):
 
         self.rnn = nn.LSTM(bidirectional=True, num_layers=2, input_size=768, hidden_size=768 // 2, batch_first=True)
         self.fc = nn.Linear(768, trigger_size)
+        print('trigger_size :', trigger_size)
 
         self.device = device
 
     def forward(self, x, y, ):
-        x = x.to(self.device)
-        y = y.to(self.device)
+        x = torch.LongTensor(x).to(self.device)
+        y = torch.LongTensor(y).to(self.device)
 
         if self.training:
             self.bert.train()
@@ -29,6 +30,7 @@ class Net(nn.Module):
                 enc = encoded_layers[-1]
 
         enc, _ = self.rnn(enc)
+        # enc.shape: [batch_size, seq_len, num_directions * hidden_size]
         logits = self.fc(enc)
         y_hat = logits.argmax(-1)
         return logits, y, y_hat

@@ -8,7 +8,7 @@ import torch.optim as optim
 from torch.utils import data
 from model import Net
 
-from data_load import ACE2005Dataset, pad, all_triggers, idx2trigger, tokenizer
+from data_load import ACE2005Dataset, pad, all_triggers, trigger2idx, idx2trigger, tokenizer
 
 
 def train(model, iterator, optimizer, criterion):
@@ -28,9 +28,9 @@ def train(model, iterator, optimizer, criterion):
 
         if i == 0:
             print("=====sanity check======")
-            print("tokens:", tokenizer.convert_ids_to_tokens(tokens_x_2d.cpu().numpy()[0])[:seqlens_1d[0]])
+            print("tokens:", tokenizer.convert_ids_to_tokens(tokens_x_2d[0])[:seqlens_1d[0]])
             print("is_heads:", is_heads_2d[0])
-            print("triggers:", triggers_y_2d[0])
+            print("triggers:", triggers_y_2d[0][:seqlens_1d[0]])
             print("seqlen:", seqlens_1d[0])
             print("=======================")
 
@@ -41,7 +41,7 @@ def train(model, iterator, optimizer, criterion):
 def eval(model, iterator, f, identification=False):
     model.eval()
 
-    Words, Is_heads, Triggers, Y, Y_hat = [], [], [], []
+    Words, Is_heads, Triggers, Y, Y_hat = [], [], [], [], []
     with torch.no_grad():
         for i, batch in enumerate(iterator):
             tokens_x_2d, entities_x_3d, triggers_y_2d, arguments_y_2d, seqlens_1d, is_heads_2d, words_2d, triggers_2d = batch
@@ -51,7 +51,7 @@ def eval(model, iterator, f, identification=False):
             Words.extend(words_2d)
             Is_heads.extend(is_heads_2d)
             Triggers.extend(triggers_2d)
-            Y.extend(triggers_y_2d.numpy().tolist())
+            Y.extend(triggers_y_2d)
             Y_hat.extend(y_hat.cpu().numpy().tolist())
 
     ## gets results and save
@@ -60,13 +60,15 @@ def eval(model, iterator, f, identification=False):
             y_hat = [hat for head, hat in zip(is_heads, y_hat) if head == 1]
             preds = [idx2trigger[hat] for hat in y_hat]
 
+            assert len(preds) == len(words.split()) == len(triggers.split())
+
             for w, t, p in zip(words.split()[1:-1], triggers.split()[1:-1], preds[1:-1]):
                 fout.write(f"{w} {t} {p}\n")
             fout.write("\n")
 
     ## calc metric
-    y_true = np.array([idx2trigger[line.split()[1]] for line in open("temp", 'r').read().splitlines() if len(line) > 0])
-    y_pred = np.array([idx2trigger[line.split()[2]] for line in open("temp", 'r').read().splitlines() if len(line) > 0])
+    y_true = np.array([trigger2idx[line.split()[1]] for line in open("temp", 'r').read().splitlines() if len(line) > 0])
+    y_pred = np.array([trigger2idx[line.split()[2]] for line in open("temp", 'r').read().splitlines() if len(line) > 0])
 
     if identification:
         print('identification mode!')
@@ -80,9 +82,7 @@ def eval(model, iterator, f, identification=False):
     num_correct = (np.logical_and(y_true == y_pred, y_true > 1)).astype(np.int).sum()
     num_gold = len(y_true[y_true > 1])
 
-    print(f"num_proposed:{num_proposed}")
-    print(f"num_correct:{num_correct}")
-    print(f"num_gold:{num_gold}")
+    print('num_proposed: {}, num_correct: {}, num_gold: {}'.format(num_proposed, num_correct, num_gold))
     try:
         precision = num_correct / num_proposed
     except ZeroDivisionError:
@@ -120,7 +120,7 @@ def eval(model, iterator, f, identification=False):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--batch_size", type=int, default=32)
+    parser.add_argument("--batch_size", type=int, default=12)
     parser.add_argument("--lr", type=float, default=0.0001)
     parser.add_argument("--n_epochs", type=int, default=30)
     parser.add_argument("--logdir", type=str, default="logdir")

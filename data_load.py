@@ -58,21 +58,21 @@ class ACE2005Dataset(data.Dataset):
                 self.sent_li.append([CLS] + words + [SEP])
                 self.triggers_li.append([PAD] + triggers + [PAD])
                 self.arguments_li.append([PAD] + arguments + [PAD])
-                self.entities_li.append([PAD] + entities + [PAD])
+                self.entities_li.append([[PAD]] + entities + [[PAD]])
 
     def __len__(self):
         return len(self.sent_li)
 
     def __getitem__(self, idx):
-        words, triggers, arguments, entities = self.sent_li[idx], self.triggers_li, self.arguments_li, self.entities_li
+        words, triggers, arguments, entities = self.sent_li[idx], self.triggers_li[idx], self.arguments_li[idx], self.entities_li[idx]
 
         # We give credits only to the first piece.
         tokens_x, entities_x = [], []
         triggers_y, arguments_y = [], []
         is_heads = []
         for w, t, a, e in zip(words, triggers, arguments, entities):
-            tokens = tokenizer.tokenize(w) if w not in (CLS, SEP) else [w]
-            tokens = tokenizer.convert_tokens_to_ids(tokens)
+            tokens = tokenizer.tokenize(w) if w not in [CLS, SEP] else [w]
+            tokens_xx = tokenizer.convert_tokens_to_ids(tokens)
 
             is_head = [1] + [0] * (len(tokens) - 1)
 
@@ -85,26 +85,34 @@ class ACE2005Dataset(data.Dataset):
             e = [[entity2idx[entity] for entity in entities] for entities in e]
 
             is_heads.extend(is_head)
-            tokens_x.extend(t), entities_x.extend(e)
+            tokens_x.extend(tokens_xx), entities_x.extend(e)
             triggers_y.extend(t), arguments_y.extend(a)
+
+        assert len(tokens_x) == len(entities_x) == len(triggers_y) == len(arguments_y), \
+            'len(tokens_x)={}, len(entities_x)={}, len(triggers_y)={}, len(triggers_y)={}'.format(len(tokens_x), len(entities_x), len(arguments_y), len(arguments_y))
 
         seqlen = len(triggers_y)
         words = ' '.join(words)
-        triggers = ' '.join(triggers_y)
+        triggers = ' '.join(triggers)
 
         return tokens_x, entities_x, triggers_y, arguments_y, seqlen, is_heads, words, triggers
 
 
 def pad(batch):
-    tokens_x_2d, entities_x_3d, triggers_y_2d, arguments_y_2d, seqlens_1d, is_heads_2d, words_2d, triggers_2d = zip(*batch)
+    tokens_x_2d, entities_x_3d, triggers_y_2d, arguments_y_2d, seqlens_1d, is_heads_2d, words_2d, triggers_2d = list(map(list, zip(*batch)))
     maxlen = np.array(seqlens_1d).max()
 
     for i in range(len(tokens_x_2d)):
         tokens_x_2d[i] = tokens_x_2d[i] + [0] * (maxlen - len(tokens_x_2d[i]))
         triggers_y_2d[i] = triggers_y_2d[i] + [trigger2idx[PAD]] * (maxlen - len(triggers_y_2d[i]))
         arguments_y_2d[i] = arguments_y_2d[i] + [argument2idx[PAD]] * (maxlen - len(arguments_y_2d[i]))
-        entities_x_3d[i] = entities_x_3d[i] + [entity2idx[PAD]] * (maxlen - len(entities_x_3d[i]))
+        entities_x_3d[i] = entities_x_3d[i] + [[entity2idx[PAD]]] * (maxlen - len(entities_x_3d[i]))
 
-    return torch.LongTensor(tokens_x_2d), torch.LongTensor(entities_x_3d), \
-           torch.LongTensor(triggers_y_2d), torch.LongTensor(arguments_y_2d), \
+    # tokens_x_2d = np.array(tokens_x_2d)
+    # entities_x_3d = np.array(entities_x_3d)
+    # triggers_y_2d = np.array(triggers_y_2d)
+    # arguments_y_2d = np.array(arguments_y_2d)
+
+    return tokens_x_2d, entities_x_3d, \
+           triggers_y_2d, arguments_y_2d, \
            seqlens_1d, is_heads_2d, words_2d, triggers_2d
