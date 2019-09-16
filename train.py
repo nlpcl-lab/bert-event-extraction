@@ -8,8 +8,7 @@ import torch.optim as optim
 from torch.utils import data
 from model import Net
 
-from data_load import ACE2005Dataset, pad, all_triggers, all_entities, idx2entity, trigger2idx, idx2trigger, tokenizer
-from utils import print_entities_3d
+from data_load import ACE2005Dataset, pad, all_triggers, all_entities, trigger2idx, idx2trigger, tokenizer
 
 def train(model, iterator, optimizer, criterion):
     model.train()
@@ -30,7 +29,6 @@ def train(model, iterator, optimizer, criterion):
             print("=====sanity check======")
             print("tokens:", tokenizer.convert_ids_to_tokens(tokens_x_2d[0])[:seqlens_1d[0]])
             print("entities_x_3d:", entities_x_3d[0][:seqlens_1d[0]])
-            print_entities_3d(entities_x_3d[0], idx2entity)
             print("is_heads:", is_heads_2d[0])
             print("triggers_y:", triggers_y_2d[0][:seqlens_1d[0]])
             print("triggers:", triggers_2d[0])
