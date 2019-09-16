@@ -8,7 +8,7 @@ import torch.optim as optim
 from torch.utils import data
 from model import Net
 
-from data_load import ACE2005Dataset, pad, all_triggers, trigger2idx, idx2trigger, tokenizer
+from data_load import ACE2005Dataset, pad, all_triggers, all_entities, trigger2idx, idx2trigger, tokenizer
 
 
 def train(model, iterator, optimizer, criterion):
@@ -16,7 +16,7 @@ def train(model, iterator, optimizer, criterion):
     for i, batch in enumerate(iterator):
         tokens_x_2d, entities_x_3d, triggers_y_2d, arguments_y_2d, seqlens_1d, is_heads_2d, words_2d, triggers_2d = batch
         optimizer.zero_grad()
-        logits, y, y_hat = model(tokens_x_2d, triggers_y_2d)
+        logits, y, y_hat = model(tokens_x_2d, entities_x_3d, triggers_y_2d)
 
         logits = logits.view(-1, logits.shape[-1])
         y = y.view(-1)
@@ -29,6 +29,7 @@ def train(model, iterator, optimizer, criterion):
         if i == 0:
             print("=====sanity check======")
             print("tokens:", tokenizer.convert_ids_to_tokens(tokens_x_2d[0])[:seqlens_1d[0]])
+            print("entities_x_3d:", entities_x_3d[0][:seqlens_1d[0]])
             print("is_heads:", is_heads_2d[0])
             print("triggers_y:", triggers_y_2d[0][:seqlens_1d[0]])
             print("triggers:", triggers_2d[0])
@@ -48,7 +49,7 @@ def eval(model, iterator, f, identification=False):
         for i, batch in enumerate(iterator):
             tokens_x_2d, entities_x_3d, triggers_y_2d, arguments_y_2d, seqlens_1d, is_heads_2d, words_2d, triggers_2d = batch
 
-            _, _, y_hat = model(tokens_x_2d, triggers_y_2d)
+            _, _, y_hat = model(tokens_x_2d, entities_x_3d, triggers_y_2d)
 
             Words.extend(words_2d)
             Is_heads.extend(is_heads_2d)
@@ -123,7 +124,7 @@ def eval(model, iterator, f, identification=False):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--batch_size", type=int, default=64)
+    parser.add_argument("--batch_size", type=int, default=12)
     parser.add_argument("--lr", type=float, default=0.0001)
     parser.add_argument("--n_epochs", type=int, default=30)
     parser.add_argument("--logdir", type=str, default="logdir")
@@ -134,7 +135,11 @@ if __name__ == "__main__":
     hp = parser.parse_args()
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-    model = Net(device=device, trigger_size=len(all_triggers))
+    model = Net(
+        device=device,
+        trigger_size=len(all_triggers),
+        entity_size=len(all_entities),
+    )
     if device == 'cuda':
         model = model.cuda()
     model = nn.DataParallel(model)
