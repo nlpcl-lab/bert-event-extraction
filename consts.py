@@ -1,6 +1,6 @@
 NONE = 'O'
-PAD = "<pad>"
-UNK = "<unk>"
+PAD = "[PAD]"
+UNK = "[UNK]"
 
 # for BERT
 CLS = '[CLS]'

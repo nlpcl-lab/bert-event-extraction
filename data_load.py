@@ -3,7 +3,7 @@ import torch
 from torch.utils import data
 import json
 
-from consts import NONE, PAD, CLS, SEP, TRIGGERS, ARGUMENTS, ENTITIES
+from consts import NONE, PAD, CLS, SEP, UNK, TRIGGERS, ARGUMENTS, ENTITIES
 from utils import build_vocab
 from pytorch_pretrained_bert import BertTokenizer
 
@@ -12,7 +12,10 @@ all_triggers, trigger2idx, idx2trigger = build_vocab(TRIGGERS)
 all_arguments, argument2idx, idx2argument = build_vocab(ARGUMENTS)
 all_entities, entity2idx, idx2entity = build_vocab(ENTITIES)
 
-tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
+tokenizer = BertTokenizer.from_pretrained('bert-base-uncased',
+                                          do_lower_case=True,
+                                          never_split=(PAD, CLS, SEP, UNK)
+                                          )
 
 
 class ACE2005Dataset(data.Dataset):
@@ -92,8 +95,6 @@ class ACE2005Dataset(data.Dataset):
             'len(tokens_x)={}, len(entities_x)={}, len(triggers_y)={}, len(triggers_y)={}'.format(len(tokens_x), len(entities_x), len(arguments_y), len(arguments_y))
 
         seqlen = len(triggers_y)
-        words = ' '.join(words)
-        triggers = ' '.join(triggers)
 
         return tokens_x, entities_x, triggers_y, arguments_y, seqlen, is_heads, words, triggers
 
