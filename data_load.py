@@ -12,7 +12,7 @@ all_triggers, trigger2idx, idx2trigger = build_vocab(TRIGGERS)
 all_arguments, argument2idx, idx2argument = build_vocab(ARGUMENTS)
 all_entities, entity2idx, idx2entity = build_vocab(ENTITIES)
 
-tokenizer = BertTokenizer.from_pretrained('bert-base-cased',
+tokenizer = BertTokenizer.from_pretrained('bert-base-uncased',
                                           do_lower_case=True,
                                           never_split=(PAD, CLS, SEP, UNK)
                                           )
@@ -21,16 +21,20 @@ tokenizer = BertTokenizer.from_pretrained('bert-base-cased',
 class ACE2005Dataset(data.Dataset):
     def __init__(self, fpath):
         self.sent_li, self.triggers_li, self.arguments_li, self.entities_li = [], [], [], []
+
+        cut_off = 50
         with open(fpath, 'r') as f:
             data = json.load(f)
             for item in data:
-                words = item['words']
+                words = item['words'][:cut_off]
                 triggers = [NONE] * len(words)
                 arguments = [NONE] * len(words)
                 entities = [[NONE] for _ in range(len(words))]
 
                 for event_mention in item['golden-event-mentions']:
                     for i in range(event_mention['trigger']['start'], event_mention['trigger']['end']):
+                        if i >= cut_off:
+                            continue
                         event_type = event_mention['event_type']
                         if i == event_mention['trigger']['start']:
                             triggers[i] = 'B-{}'.format(event_type)
@@ -40,6 +44,8 @@ class ACE2005Dataset(data.Dataset):
                     for argument in event_mention['arguments']:
                         argument_role = argument['role']
                         for j in range(argument['start'], argument['end']):
+                            if j >= cut_off:
+                                continue
                             if j == argument['start']:
                                 arguments[j] = 'B-{}'.format(argument_role)
                             else:
@@ -47,6 +53,8 @@ class ACE2005Dataset(data.Dataset):
 
                 for entity_mention in item['golden-entity-mentions']:
                     for i in range(entity_mention['start'], entity_mention['end']):
+                        if i >= cut_off:
+                            continue
                         entity_type = entity_mention['entity-type']
                         if i == entity_mention['start']:
                             entity_type = 'B-{}'.format(entity_type)
@@ -108,12 +116,6 @@ def pad(batch):
         triggers_y_2d[i] = triggers_y_2d[i] + [trigger2idx[PAD]] * (maxlen - len(triggers_y_2d[i]))
         arguments_y_2d[i] = arguments_y_2d[i] + [argument2idx[PAD]] * (maxlen - len(arguments_y_2d[i]))
         entities_x_3d[i] = entities_x_3d[i] + [[entity2idx[PAD]] for _ in range(maxlen - len(entities_x_3d[i]))]
-
-        cut_off = 50
-        tokens_x_2d[i] = tokens_x_2d[i][:cut_off]
-        triggers_y_2d[i] = triggers_y_2d[i][:cut_off]
-        arguments_y_2d[i] = arguments_y_2d[i][:cut_off]
-        entities_x_3d[i] = entities_x_3d[i][:cut_off]
 
     return tokens_x_2d, entities_x_3d, \
            triggers_y_2d, arguments_y_2d, \

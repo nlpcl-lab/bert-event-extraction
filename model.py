@@ -7,12 +7,12 @@ import torch.nn.functional as F
 class Net(nn.Module):
     def __init__(self, trigger_size=None, entity_size=None, entity_embedding_dim=50, device='cpu'):
         super().__init__()
-        self.bert = BertModel.from_pretrained('bert-base-cased')
+        self.bert = BertModel.from_pretrained('bert-base-uncased')
 
-        self.rnn = nn.LSTM(bidirectional=True, num_layers=2, input_size=768, hidden_size=768 // 2, batch_first=True)
+        self.rnn = nn.LSTM(bidirectional=True, num_layers=1, input_size=768 + entity_embedding_dim, hidden_size=768 // 2, batch_first=True)
         # self.fc = nn.Linear(768 + entity_embedding_dim, trigger_size)
         self.fc = nn.Sequential(
-            nn.Linear(768 + entity_embedding_dim, 300),
+            nn.Linear(768, 300),
             nn.CELU(),
             nn.Linear(300, trigger_size),
         )
@@ -36,8 +36,8 @@ class Net(nn.Module):
 
         entities_embedding = self.entity_embedding(entities_x_3d)
         out = torch.cat([enc, entities_embedding], 2)
-        # enc, _ = self.rnn(enc)
-        # enc.shape: [batch_size, seq_len, num_directions * hidden_size]
+        out, _ = self.rnn(out)
+        # out.shape: [batch_size, seq_len, num_directions * hidden_size]
 
         logits = self.fc(out)
         y_hat = logits.argmax(-1)
@@ -48,7 +48,7 @@ class Net(nn.Module):
 class MultiLabelEmbeddingLayer(nn.Module):
     def __init__(self,
                  num_embeddings=None, embedding_dim=None,
-                 dropout=0.7, padding_idx=0,
+                 dropout=0.5, padding_idx=0,
                  max_norm=None, norm_type=2,
                  device=torch.device("cpu")):
         super(MultiLabelEmbeddingLayer, self).__init__()

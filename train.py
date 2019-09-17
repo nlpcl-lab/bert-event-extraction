@@ -125,7 +125,7 @@ def eval(model, iterator, f, identification=False):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--batch_size", type=int, default=24)
-    parser.add_argument("--lr", type=float, default=0.00007)
+    parser.add_argument("--lr", type=float, default=0.0001)
     parser.add_argument("--n_epochs", type=int, default=30)
     parser.add_argument("--logdir", type=str, default="logdir")
     parser.add_argument("--trainset", type=str, default="data/train.json")
@@ -174,11 +174,12 @@ if __name__ == "__main__":
         print(f"=========eval at epoch={epoch}=========")
         if not os.path.exists(hp.logdir): os.makedirs(hp.logdir)
         fname = os.path.join(hp.logdir, str(epoch))
-        precision, recall, f1 = eval(model, dev_iter, fname + 'dev')
-        precision, recall, f1 = eval(model, dev_iter, fname + 'dev_iden', identification=True)
 
-        precision, recall, f1 = eval(model, dev_iter, fname + 'test')
-        precision, recall, f1 = eval(model, test_iter, fname + 'test_iden', identification=True)
+        precision, recall, f1 = eval(model, dev_iter, fname + '_dev')
+        precision, recall, f1 = eval(model, dev_iter, fname + '_dev_iden', identification=True)
+
+        precision, recall, f1 = eval(model, test_iter, fname + '_test')
+        precision, recall, f1 = eval(model, test_iter, fname + '_test_iden', identification=True)
 
         torch.save(model.state_dict(), "latest_model.pt")
-        print(f"weights were saved to {fname}.pt")
+        # print(f"weights were saved to {fname}.pt")
