@@ -12,7 +12,7 @@ all_triggers, trigger2idx, idx2trigger = build_vocab(TRIGGERS)
 all_arguments, argument2idx, idx2argument = build_vocab(ARGUMENTS)
 all_entities, entity2idx, idx2entity = build_vocab(ENTITIES)
 
-tokenizer = BertTokenizer.from_pretrained('bert-base-uncased',
+tokenizer = BertTokenizer.from_pretrained('bert-base-cased',
                                           do_lower_case=True,
                                           never_split=(PAD, CLS, SEP, UNK)
                                           )
@@ -109,10 +109,11 @@ def pad(batch):
         arguments_y_2d[i] = arguments_y_2d[i] + [argument2idx[PAD]] * (maxlen - len(arguments_y_2d[i]))
         entities_x_3d[i] = entities_x_3d[i] + [[entity2idx[PAD]] for _ in range(maxlen - len(entities_x_3d[i]))]
 
-    # tokens_x_2d = np.array(tokens_x_2d)
-    # entities_x_3d = np.array(entities_x_3d)
-    # triggers_y_2d = np.array(triggers_y_2d)
-    # arguments_y_2d = np.array(arguments_y_2d)
+        cut_off = 50
+        tokens_x_2d[i] = tokens_x_2d[i][:cut_off]
+        triggers_y_2d[i] = triggers_y_2d[i][:cut_off]
+        arguments_y_2d[i] = arguments_y_2d[i][:cut_off]
+        entities_x_3d[i] = entities_x_3d[i][:cut_off]
 
     return tokens_x_2d, entities_x_3d, \
            triggers_y_2d, arguments_y_2d, \

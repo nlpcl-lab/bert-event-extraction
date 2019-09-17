@@ -10,6 +10,7 @@ from model import Net
 
 from data_load import ACE2005Dataset, pad, all_triggers, all_entities, trigger2idx, idx2trigger, tokenizer
 
+
 def train(model, iterator, optimizer, criterion):
     model.train()
     for i, batch in enumerate(iterator):
@@ -30,9 +31,9 @@ def train(model, iterator, optimizer, criterion):
             print("tokens:", tokenizer.convert_ids_to_tokens(tokens_x_2d[0])[:seqlens_1d[0]])
             print("entities_x_3d:", entities_x_3d[0][:seqlens_1d[0]])
             print("is_heads:", is_heads_2d[0])
-            print("triggers_y:", triggers_y_2d[0][:seqlens_1d[0]])
             print("triggers:", triggers_2d[0])
-            print('y_hat:', y_hat.cpu().numpy().tolist()[0][:seqlens_1d[0]])
+            print("triggers_y:", triggers_y_2d[0][:seqlens_1d[0]])
+            print('triggers_y_hat:', y_hat.cpu().numpy().tolist()[0][:seqlens_1d[0]])
             print("seqlen:", seqlens_1d[0])
             print("=======================")
 
@@ -123,8 +124,8 @@ def eval(model, iterator, f, identification=False):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--batch_size", type=int, default=48)
-    parser.add_argument("--lr", type=float, default=0.0001)
+    parser.add_argument("--batch_size", type=int, default=24)
+    parser.add_argument("--lr", type=float, default=0.00007)
     parser.add_argument("--n_epochs", type=int, default=30)
     parser.add_argument("--logdir", type=str, default="logdir")
     parser.add_argument("--trainset", type=str, default="data/train.json")
@@ -145,6 +146,7 @@ if __name__ == "__main__":
 
     train_dataset = ACE2005Dataset(hp.trainset)
     dev_dataset = ACE2005Dataset(hp.devset)
+    test_dataset = ACE2005Dataset(hp.testset)
 
     train_iter = data.DataLoader(dataset=train_dataset,
                                  batch_size=hp.batch_size,
@@ -157,6 +159,12 @@ if __name__ == "__main__":
                                num_workers=4,
                                collate_fn=pad)
 
+    test_iter = data.DataLoader(dataset=test_dataset,
+                                batch_size=hp.batch_size,
+                                shuffle=False,
+                                num_workers=4,
+                                collate_fn=pad)
+
     optimizer = optim.Adam(model.parameters(), lr=hp.lr)
     criterion = nn.CrossEntropyLoss(ignore_index=0)
 
@@ -166,8 +174,11 @@ if __name__ == "__main__":
         print(f"=========eval at epoch={epoch}=========")
         if not os.path.exists(hp.logdir): os.makedirs(hp.logdir)
         fname = os.path.join(hp.logdir, str(epoch))
-        precision, recall, f1 = eval(model, dev_iter, fname)
-        precision, recall, f1 = eval(model, dev_iter, fname, identification=True)
+        precision, recall, f1 = eval(model, dev_iter, fname + 'dev')
+        precision, recall, f1 = eval(model, dev_iter, fname + 'dev_iden', identification=True)
+
+        precision, recall, f1 = eval(model, dev_iter, fname + 'test')
+        precision, recall, f1 = eval(model, test_iter, fname + 'test_iden', identification=True)
 
         torch.save(model.state_dict(), "latest_model.pt")
         print(f"weights were saved to {fname}.pt")

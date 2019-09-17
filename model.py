@@ -7,10 +7,15 @@ import torch.nn.functional as F
 class Net(nn.Module):
     def __init__(self, trigger_size=None, entity_size=None, entity_embedding_dim=50, device='cpu'):
         super().__init__()
-        self.bert = BertModel.from_pretrained('bert-base-uncased')
+        self.bert = BertModel.from_pretrained('bert-base-cased')
 
         self.rnn = nn.LSTM(bidirectional=True, num_layers=2, input_size=768, hidden_size=768 // 2, batch_first=True)
-        self.fc = nn.Linear(768 + entity_embedding_dim, trigger_size)
+        # self.fc = nn.Linear(768 + entity_embedding_dim, trigger_size)
+        self.fc = nn.Sequential(
+            nn.Linear(768 + entity_embedding_dim, 300),
+            nn.CELU(),
+            nn.Linear(300, trigger_size),
+        )
         self.entity_embedding = MultiLabelEmbeddingLayer(num_embeddings=entity_size, embedding_dim=entity_embedding_dim, device=device)
 
         self.device = device
@@ -43,7 +48,7 @@ class Net(nn.Module):
 class MultiLabelEmbeddingLayer(nn.Module):
     def __init__(self,
                  num_embeddings=None, embedding_dim=None,
-                 dropout=0.5, padding_idx=0,
+                 dropout=0.7, padding_idx=0,
                  max_norm=None, norm_type=2,
                  device=torch.device("cpu")):
         super(MultiLabelEmbeddingLayer, self).__init__()
@@ -58,12 +63,13 @@ class MultiLabelEmbeddingLayer(nn.Module):
         self.to(device)
 
     def forward(self, x):
-        BATCH = len(x)
-        SEQ_LEN = len(x[0])
+        batch_size = len(x)
+        seq_len = len(x[0])
         x = [self.matrix(torch.LongTensor(x[i][j]).to(self.device)).sum(0)
-             for i in range(BATCH)
-             for j in range(SEQ_LEN)]
-        x = torch.stack(x).view(BATCH, SEQ_LEN, -1)
+             for i in range(batch_size)
+             for j in range(seq_len)]
+        x = torch.stack(x).view(batch_size, seq_len, -1)
+
         if self.dropout is not None:
             return F.dropout(x, p=self.dropout, training=self.training)
         else:
