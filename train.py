@@ -9,6 +9,7 @@ from torch.utils import data
 from model import Net
 
 from data_load import ACE2005Dataset, pad, all_triggers, all_entities, trigger2idx, idx2trigger, tokenizer
+from utils import calc_metric
 
 
 def train(model, iterator, optimizer, criterion):
@@ -22,6 +23,7 @@ def train(model, iterator, optimizer, criterion):
         y = y.view(-1)
 
         loss = criterion(logits, y)
+        nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         loss.backward()
 
         optimizer.step()
@@ -41,7 +43,7 @@ def train(model, iterator, optimizer, criterion):
             print("step: {}, loss: {}".format(i, loss.item()))
 
 
-def eval(model, iterator, f, identification=False):
+def eval(model, iterator, fname):
     model.eval()
 
     Words, Is_heads, Triggers, Y, Y_hat = [], [], [], [], []
@@ -57,8 +59,8 @@ def eval(model, iterator, f, identification=False):
             Y.extend(triggers_y_2d)
             Y_hat.extend(y_hat.cpu().numpy().tolist())
 
-    ## gets results and save
-    with open("temp", 'w') as fout:
+    # save
+    with open('temp', 'w') as fout:
         for words, is_heads, triggers, y_hat in zip(Words, Is_heads, Triggers, Y_hat):
             y_hat = [hat for head, hat in zip(is_heads, y_hat) if head == 1]
             preds = [idx2trigger[hat] for hat in y_hat]
@@ -70,61 +72,31 @@ def eval(model, iterator, f, identification=False):
                 fout.write(f"{w}\t{t}\t{p}\n")
             fout.write("\n")
 
-    ## calc metric
-    y_true = np.array([trigger2idx[line.split('\t')[1]] for line in open("temp", 'r').read().splitlines() if len(line) > 0])
-    y_pred = np.array([trigger2idx[line.split('\t')[2]] for line in open("temp", 'r').read().splitlines() if len(line) > 0])
+    y_true, y_pred = [], []
+    with open('temp', 'r') as fout:
+        lines = fout.read().splitlines()
+        for line in lines:
+            if len(line) > 0:
+                y_true.append(trigger2idx[line.split('\t')[1]])
+                y_pred.append(trigger2idx[line.split('\t')[2]])
 
-    if identification:
-        print('identification mode!')
-        y_true = list(map(lambda x: 2 if x >= 2 else x, y_true))
-        y_pred = list(map(lambda x: 2 if x >= 2 else x, y_pred))
-
-        y_true = np.array(y_true)
-        y_pred = np.array(y_pred)
-
-    num_proposed = len(y_pred[y_pred > 1])
-    num_correct = (np.logical_and(y_true == y_pred, y_true > 1)).astype(np.int).sum()
-    num_gold = len(y_true[y_true > 1])
-
-    print('num_proposed: {}, num_correct: {}, num_gold: {}'.format(num_proposed, num_correct, num_gold))
-    try:
-        precision = num_correct / num_proposed
-    except ZeroDivisionError:
-        precision = 1.0
-
-    try:
-        recall = num_correct / num_gold
-    except ZeroDivisionError:
-        recall = 1.0
-
-    try:
-        f1 = 2 * precision * recall / (precision + recall)
-    except ZeroDivisionError:
-        if precision * recall == 0:
-            f1 = 1.0
-        else:
-            f1 = 0
-
-    final = f + ".P%.2f_R%.2f_F%.2f" % (precision, recall, f1)
+    precision, recall, f1 = calc_metric(y_true, y_pred)
+    final = fname + ".P%.2f_R%.2f_F%.2f" % (precision, recall, f1)
     with open(final, 'w') as fout:
         result = open("temp", "r").read()
         fout.write(f"{result}\n")
-
-        fout.write(f"precision={precision}\n")
-        fout.write(f"recall={recall}\n")
-        fout.write(f"f1={f1}\n")
-
     os.remove("temp")
+    print('[classification] P={0:.3f},R={0:.3f},F1={0:.3f}'.format(precision, recall, f1))
 
-    print("precision=%.3f" % precision)
-    print("recall=%.3f" % recall)
-    print("f1=%.3f" % f1)
-    return precision, recall, f1
+    y_true = np.array(map(lambda x: 2 if x >= 2 else x, y_true))
+    y_pred = np.array(map(lambda x: 2 if x >= 2 else x, y_pred))
+    precision, recall, f1 = calc_metric(y_true, y_pred)
+    print('[identification] P={0:.3f},R={0:.3f},F1={0:.3f}'.format(precision, recall, f1))
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--batch_size", type=int, default=24)
+    parser.add_argument("--batch_size", type=int, default=30)
     parser.add_argument("--lr", type=float, default=0.0001)
     parser.add_argument("--n_epochs", type=int, default=30)
     parser.add_argument("--logdir", type=str, default="logdir")
@@ -158,7 +130,6 @@ if __name__ == "__main__":
                                shuffle=False,
                                num_workers=4,
                                collate_fn=pad)
-
     test_iter = data.DataLoader(dataset=test_dataset,
                                 batch_size=hp.batch_size,
                                 shuffle=False,
@@ -168,18 +139,17 @@ if __name__ == "__main__":
     optimizer = optim.Adam(model.parameters(), lr=hp.lr)
     criterion = nn.CrossEntropyLoss(ignore_index=0)
 
+    if not os.path.exists(hp.logdir):
+        os.makedirs(hp.logdir)
+
     for epoch in range(1, hp.n_epochs + 1):
         train(model, train_iter, optimizer, criterion)
 
         print(f"=========eval at epoch={epoch}=========")
-        if not os.path.exists(hp.logdir): os.makedirs(hp.logdir)
         fname = os.path.join(hp.logdir, str(epoch))
 
-        precision, recall, f1 = eval(model, dev_iter, fname + '_dev')
-        precision, recall, f1 = eval(model, dev_iter, fname + '_dev_iden', identification=True)
-
-        precision, recall, f1 = eval(model, test_iter, fname + '_test')
-        precision, recall, f1 = eval(model, test_iter, fname + '_test_iden', identification=True)
+        eval(model, dev_iter, fname + '_dev')
+        eval(model, test_iter, fname + '_test')
 
         torch.save(model.state_dict(), "latest_model.pt")
         # print(f"weights were saved to {fname}.pt")

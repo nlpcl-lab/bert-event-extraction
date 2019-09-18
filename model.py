@@ -12,9 +12,9 @@ class Net(nn.Module):
         self.rnn = nn.LSTM(bidirectional=True, num_layers=1, input_size=768 + entity_embedding_dim, hidden_size=768 // 2, batch_first=True)
         # self.fc = nn.Linear(768 + entity_embedding_dim, trigger_size)
         self.fc = nn.Sequential(
-            nn.Linear(768, 300),
-            nn.CELU(),
-            nn.Linear(300, trigger_size),
+            nn.Linear(768 + entity_embedding_dim, 512),
+            nn.ReLU(),
+            nn.Linear(512, trigger_size),
         )
         self.entity_embedding = MultiLabelEmbeddingLayer(num_embeddings=entity_size, embedding_dim=entity_embedding_dim, device=device)
 
@@ -36,7 +36,7 @@ class Net(nn.Module):
 
         entities_embedding = self.entity_embedding(entities_x_3d)
         out = torch.cat([enc, entities_embedding], 2)
-        out, _ = self.rnn(out)
+        # out, _ = self.rnn(out)
         # out.shape: [batch_size, seq_len, num_directions * hidden_size]
 
         logits = self.fc(out)
