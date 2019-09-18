@@ -15,11 +15,14 @@ def build_vocab(labels):
 
 
 def calc_metric(y_true, y_pred):
+    y_true = np.array(y_true)
+    y_pred = np.array(y_pred)
+
     num_proposed = len(y_pred[y_pred > 1])
     num_correct = (np.logical_and(y_true == y_pred, y_true > 1)).astype(np.int).sum()
     num_gold = len(y_true[y_true > 1])
 
-    print('[calc_metric] proposed: {}, correct: {}, gold: {}'.format(num_proposed, num_correct, num_gold))
+    print('proposed: {}, correct: {}, gold: {}'.format(num_proposed, num_correct, num_gold))
 
     if num_proposed != 0:
         precision = num_correct / num_proposed

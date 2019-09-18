@@ -81,17 +81,19 @@ def eval(model, iterator, fname):
                 y_pred.append(trigger2idx[line.split('\t')[2]])
 
     precision, recall, f1 = calc_metric(y_true, y_pred)
-    final = fname + ".P%.2f_R%.2f_F%.2f" % (precision, recall, f1)
-    with open(final, 'w') as fout:
-        result = open("temp", "r").read()
-        fout.write(f"{result}\n")
-    os.remove("temp")
-    print('[classification] P={0:.3f},R={0:.3f},F1={0:.3f}'.format(precision, recall, f1))
 
-    y_true = np.array(map(lambda x: 2 if x >= 2 else x, y_true))
-    y_pred = np.array(map(lambda x: 2 if x >= 2 else x, y_pred))
+    if f1 > 0.7:
+        final = fname + ".P%.2f_R%.2f_F%.2f" % (precision, recall, f1)
+        with open(final, 'w') as fout:
+            result = open("temp", "r").read()
+            fout.write(f"{result}\n")
+    os.remove("temp")
+    print('[classification]\t\t\t\tP={:.3f}\tR={:.3f}\tF1={:.3f}'.format(precision, recall, f1))
+
+    y_true = list(map(lambda x: 2 if x >= 2 else x, y_true))
+    y_pred = list(map(lambda x: 2 if x >= 2 else x, y_pred))
     precision, recall, f1 = calc_metric(y_true, y_pred)
-    print('[identification] P={0:.3f},R={0:.3f},F1={0:.3f}'.format(precision, recall, f1))
+    print('[identification]\t\t\t\tP={:.3f}\tR={:.3f}\tF1={:.3f}'.format(precision, recall, f1))
 
 
 if __name__ == "__main__":
