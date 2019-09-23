@@ -82,25 +82,25 @@ def eval(model, iterator, fname):
 
     precision, recall, f1 = calc_metric(y_true, y_pred)
 
-    if f1 > 0.7:
+    if f1 > 0.69:
         final = fname + ".P%.2f_R%.2f_F%.2f" % (precision, recall, f1)
         with open(final, 'w') as fout:
             result = open("temp", "r").read()
             fout.write(f"{result}\n")
     os.remove("temp")
-    print('[classification]\t\t\t\tP={:.3f}\tR={:.3f}\tF1={:.3f}'.format(precision, recall, f1))
+    print('[classification]\t\tP={:.3f}\tR={:.3f}\tF1={:.3f}'.format(precision, recall, f1))
 
     y_true = list(map(lambda x: 2 if x >= 2 else x, y_true))
     y_pred = list(map(lambda x: 2 if x >= 2 else x, y_pred))
     precision, recall, f1 = calc_metric(y_true, y_pred)
-    print('[identification]\t\t\t\tP={:.3f}\tR={:.3f}\tF1={:.3f}'.format(precision, recall, f1))
+    print('[identification]\t\tP={:.3f}\tR={:.3f}\tF1={:.3f}'.format(precision, recall, f1))
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--batch_size", type=int, default=30)
-    parser.add_argument("--lr", type=float, default=0.0001)
-    parser.add_argument("--n_epochs", type=int, default=30)
+    parser.add_argument("--lr", type=float, default=0.00002)
+    parser.add_argument("--n_epochs", type=int, default=100)
     parser.add_argument("--logdir", type=str, default="logdir")
     parser.add_argument("--trainset", type=str, default="data/train.json")
     parser.add_argument("--devset", type=str, default="data/dev.json")
@@ -150,6 +150,7 @@ if __name__ == "__main__":
         print(f"=========eval at epoch={epoch}=========")
         fname = os.path.join(hp.logdir, str(epoch))
 
+        # eval(model, train_iter, fname + '_train')
         eval(model, dev_iter, fname + '_dev')
         eval(model, test_iter, fname + '_test')
 

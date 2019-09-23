@@ -12,10 +12,7 @@ all_triggers, trigger2idx, idx2trigger = build_vocab(TRIGGERS)
 all_arguments, argument2idx, idx2argument = build_vocab(ARGUMENTS)
 all_entities, entity2idx, idx2entity = build_vocab(ENTITIES)
 
-tokenizer = BertTokenizer.from_pretrained('bert-base-uncased',
-                                          do_lower_case=True,
-                                          never_split=(PAD, CLS, SEP, UNK)
-                                          )
+tokenizer = BertTokenizer.from_pretrained('bert-base-cased', do_lower_case=False, never_split=(PAD, CLS, SEP, UNK))
 
 
 class ACE2005Dataset(data.Dataset):
