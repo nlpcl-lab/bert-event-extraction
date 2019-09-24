@@ -47,6 +47,7 @@ def train(model, iterator, optimizer, criterion):
             print("triggers:", triggers_2d[0])
             print("triggers_y:", triggers_y_2d[0][:seqlens_1d[0]])
             print('triggers_y_hat:', trigger_hat_2d.cpu().numpy().tolist()[0][:seqlens_1d[0]])
+            print("arguments_2d:", arguments_2d[0])
             print("seqlen:", seqlens_1d[0])
             print("=======================")
 
@@ -62,11 +63,11 @@ def eval(model, iterator, fname):
         for i, batch in enumerate(iterator):
             tokens_x_2d, entities_x_3d, triggers_y_2d, arguments_2d, seqlens_1d, head_indexes_2d, words_2d, triggers_2d = batch
 
-            _, _, trigger_hat = model(tokens_x_2d, entities_x_3d, head_indexes_2d, triggers_y_2d, arguments_2d)
+            trigger_logits, triggers_y_2d, trigger_hat_2d, argument_hidden, argument_keys = model(tokens_x_2d, entities_x_3d, head_indexes_2d, triggers_y_2d, arguments_2d)
 
             words_all.extend(words_2d)
             trigger_all.extend(triggers_2d)
-            trigger_hat_all.extend(trigger_hat.cpu().numpy().tolist())
+            trigger_hat_all.extend(trigger_hat_2d.cpu().numpy().tolist())
 
     # save
     with open('temp', 'w') as fout:
