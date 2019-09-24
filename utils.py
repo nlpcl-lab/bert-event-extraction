@@ -18,14 +18,21 @@ def build_vocab(labels, BIO_tagging=True):
 
 
 def calc_metric(y_true, y_pred):
-    y_true = np.array(y_true)
-    y_pred = np.array(y_pred)
+    """
+    :param y_true: [(tuple), ...]
+    :param y_pred: [(tuple), ...]
+    :return:
+    """
+    num_proposed = len(y_pred)
+    num_gold = len(y_true)
 
-    num_proposed = len(y_pred[y_pred > 1])
-    num_correct = (np.logical_and(y_true == y_pred, y_true > 1)).astype(np.int).sum()
-    num_gold = len(y_true[y_true > 1])
+    y_true_set = set(y_true)
+    num_correct = 0
+    for item in y_pred:
+        if item in y_true_set:
+            num_correct += 1
 
-    print('proposed: {}, correct: {}, gold: {}'.format(num_proposed, num_correct, num_gold))
+    print('proposed: {}\tcorrect: {}\tgold: {}'.format(num_proposed, num_correct, num_gold))
 
     if num_proposed != 0:
         precision = num_correct / num_proposed
@@ -45,13 +52,13 @@ def calc_metric(y_true, y_pred):
     return precision, recall, f1
 
 
-def find_triggers(trigger_hat):
+def find_triggers(labels):
     """
-    :param trigger_hat: ['B-Conflict:Attack', 'I-Conflict:Attack', 'O', 'B-Life:Marry']
+    :param labels: ['B-Conflict:Attack', 'I-Conflict:Attack', 'O', 'B-Life:Marry']
     :return: [(0, 2, 'Conflict:Attack'), (3, 4, 'Life:Marry')]
     """
     result = []
-    labels = [trigger.split('-') for trigger in trigger_hat]
+    labels = [label.split('-') for label in labels]
 
     for i in range(len(labels)):
         if labels[i][0] == 'B':

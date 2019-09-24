@@ -13,7 +13,7 @@ from model import Net
 
 from data_load import ACE2005Dataset, pad, all_triggers, all_entities, all_postags, trigger2idx, idx2trigger, all_arguments, tokenizer
 from consts import NONE, PAD
-from utils import calc_metric
+from utils import calc_metric, find_triggers
 
 
 def train(model, iterator, optimizer, criterion):
@@ -42,15 +42,15 @@ def train(model, iterator, optimizer, criterion):
 
         if i == 0:
             print("=====sanity check======")
-            print("tokens:", tokenizer.convert_ids_to_tokens(tokens_x_2d[0])[:seqlens_1d[0]])
-            print("entities_x_3d:", entities_x_3d[0][:seqlens_1d[0]])
-            print("postags_x_2d:", postags_x_2d[0][:seqlens_1d[0]])
-            print("head_indexes_2d:", head_indexes_2d[0][:seqlens_1d[0]])
-            print("triggers:", triggers_2d[0])
-            print("triggers_y:", triggers_y_2d.cpu().numpy().tolist()[0][:seqlens_1d[0]])
-            print('triggers_y_hat:', trigger_hat_2d.cpu().numpy().tolist()[0][:seqlens_1d[0]])
-            print("arguments_2d:", arguments_2d[0])
-            print("seqlen:", seqlens_1d[0])
+            print("tokens_x_2d[0]:", tokenizer.convert_ids_to_tokens(tokens_x_2d[0])[:seqlens_1d[0]])
+            print("entities_x_3d[0]:", entities_x_3d[0][:seqlens_1d[0]])
+            print("postags_x_2d[0]:", postags_x_2d[0][:seqlens_1d[0]])
+            print("head_indexes_2d[0]:", head_indexes_2d[0][:seqlens_1d[0]])
+            print("triggers_2d[0]:", triggers_2d[0])
+            print("triggers_y_2d[0]:", triggers_y_2d.cpu().numpy().tolist()[0][:seqlens_1d[0]])
+            print('trigger_hat_2d[0]:', trigger_hat_2d.cpu().numpy().tolist()[0][:seqlens_1d[0]])
+            print("arguments_2d[0]:", arguments_2d[0])
+            print("seqlens_1d[0]:", seqlens_1d[0])
             print("=======================")
 
         if i % 10 == 0:  # monitoring
@@ -73,39 +73,35 @@ def eval(model, iterator, fname):
             trigger_all.extend(triggers_2d)
             trigger_hat_all.extend(trigger_hat_2d.cpu().numpy().tolist())
 
-    # save
+    trigger_true, trigger_pred = [], []
     with open('temp', 'w') as fout:
         for words, triggers, trigger_hat in zip(words_all, trigger_all, trigger_hat_all):
             trigger_hat = trigger_hat[:len(words)]
             trigger_hat = [idx2trigger[hat] for hat in trigger_hat]
 
-            for w, t, p in zip(words[1:-1], triggers[1:-1], trigger_hat[1:-1]):
-                fout.write(f"{w}\t{t}\t{p}\n")
+            for w, t, t_h in zip(words[1:-1], triggers[1:-1], trigger_hat[1:-1]):
+                fout.write(f"{w}\t{t}\t{t_h}\n")
             fout.write("\n")
 
-    y_true, y_pred = [], []
-    with open('temp', 'r') as fout:
-        lines = fout.read().splitlines()
-        for line in lines:
-            if len(line) > 0:
-                y_true.append(trigger2idx[line.split('\t')[1]])
-                y_pred.append(trigger2idx[line.split('\t')[2]])
+            trigger_true.extend([(i, *item) for i, item in enumerate(find_triggers(triggers))])
+            trigger_pred.extend([(i, *item) for i, item in enumerate(find_triggers(trigger_hat))])
 
-    precision, recall, f1 = calc_metric(y_true, y_pred)
+    trigger_p, trigger_r, trigger_f1 = calc_metric(trigger_true, trigger_pred)
     # print(classification_report([idx2trigger[idx] for idx in y_true], [idx2trigger[idx] for idx in y_pred]))
 
-    if f1 > 0.69:
-        final = fname + ".P%.2f_R%.2f_F%.2f" % (precision, recall, f1)
+    if trigger_f1 > 0.69:
+        final = fname + ".P%.2f_R%.2f_F%.2f" % (trigger_p, trigger_r, trigger_f1)
         with open(final, 'w') as fout:
             result = open("temp", "r").read()
             fout.write(f"{result}\n")
-    os.remove("temp")
-    print('[classification]\t\tP={:.3f}\tR={:.3f}\tF1={:.3f}'.format(precision, recall, f1))
 
-    y_true = list(map(lambda x: 2 if x >= 2 else x, y_true))
-    y_pred = list(map(lambda x: 2 if x >= 2 else x, y_pred))
-    precision, recall, f1 = calc_metric(y_true, y_pred)
-    print('[identification]\t\tP={:.3f}\tR={:.3f}\tF1={:.3f}'.format(precision, recall, f1))
+    os.remove("temp")
+    print('[trigger classification]\tP={:.3f}\tR={:.3f}\tF1={:.3f}'.format(trigger_p, trigger_r, trigger_f1))
+
+    trigger_true = [(item[0], item[1], item[2]) for item in trigger_true]
+    trigger_pred = [(item[0], item[1], item[2]) for item in trigger_pred]
+    trigger_p, trigger_r, trigger_f1 = calc_metric(trigger_true, trigger_pred)
+    print('[trigger identification]\t\tP={:.3f}\tR={:.3f}\tF1={:.3f}'.format(trigger_p, trigger_r, trigger_f1))
 
 
 if __name__ == "__main__":
