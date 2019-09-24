@@ -55,7 +55,7 @@ def find_triggers(trigger_hat):
 
     for i in range(len(labels)):
         if labels[i][0] == 'B':
-            result.append((i, i + 1, labels[i][1]))
+            result.append([i, i + 1, labels[i][1]])
 
     for item in result:
         j = item[1]
@@ -66,4 +66,4 @@ def find_triggers(trigger_hat):
             else:
                 break
 
-    return result
+    return [tuple(item) for item in result]

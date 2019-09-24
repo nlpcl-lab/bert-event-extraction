@@ -5,12 +5,13 @@ import torch.nn.functional as F
 import numpy as np
 
 from pytorch_pretrained_bert import BertModel
-from data_load import idx2trigger
+from data_load import idx2trigger, argument2idx
+from consts import NONE
 from utils import find_triggers
 
 
 class Net(nn.Module):
-    def __init__(self, trigger_size=None, entity_size=None, entity_embedding_dim=50, device=torch.device("cpu")):
+    def __init__(self, trigger_size=None, argument_size=None, entity_size=None, entity_embedding_dim=50, device=torch.device("cpu")):
         super().__init__()
         self.bert = BertModel.from_pretrained('bert-base-cased')
         self.entity_embed = MultiLabelEmbeddingLayer(num_embeddings=entity_size, embedding_dim=entity_embedding_dim, device=device)
@@ -22,8 +23,11 @@ class Net(nn.Module):
             nn.Linear(768 + entity_embedding_dim, 768, bias=True),
             nn.ReLU(),
         )
-        self.fc2 = nn.Sequential(
+        self.fc_trigger = nn.Sequential(
             nn.Linear(768, trigger_size),
+        )
+        self.fc_argument = nn.Sequential(
+            nn.Linear(768 * 2, argument_size),
         )
         self.device = device
 
@@ -44,21 +48,18 @@ class Net(nn.Module):
                 enc = encoded_layers[-1]
 
         x = torch.cat([enc, entity_x_2d], 2)
-        x = self.fc1(x)
-
-        # out.shape: [batch_size, seq_len, hidden_size]
-
+        x = self.fc1(x)  # x: [batch_size, seq_len, hidden_size]
         # logits = self.fc2(out + enc)
 
         batch_size = tokens_x_2d.shape[0]
-        seq_len = tokens_x_2d.shape[1]
 
         for i in range(batch_size):
             x[i] = torch.index_select(x[i], 0, head_indexes_2d[i])
 
-        logits = self.fc2(x)
-        trigger_hat_2d = logits.argmax(-1)
+        trigger_logits = self.fc_trigger(x)
+        trigger_hat_2d = trigger_logits.argmax(-1)
 
+        argument_hidden, argument_keys = [], []
         for i in range(batch_size):
             candidates = arguments_2d[i]['candidates']
             golden_entity_tensors = {}
@@ -68,9 +69,36 @@ class Net(nn.Module):
                 golden_entity_tensors[candidates[j]] = x[i, e_start:e_end, ].mean(dim=0)
 
             predicted_triggers = find_triggers([idx2trigger[trigger] for trigger in trigger_hat_2d[i].tolist()])
-            print('predicted_triggers:', predicted_triggers)
+            for predicted_trigger in predicted_triggers:
+                t_start, t_end, t_type_str = predicted_trigger
+                event_tensor = x[i, t_start:t_end, ].mean(dim=0)
+                for j in range(len(candidates)):
+                    e_start, e_end, e_type_str = candidates[j]
+                    entity_tensor = golden_entity_tensors[candidates[j]]
 
-        return logits, triggers_y_2d, trigger_hat_2d
+                    argument_hidden.append(torch.cat([event_tensor, entity_tensor]))
+                    argument_keys.append((i, t_start, t_end, t_type_str, e_start, e_end, e_type_str))
+
+        return trigger_logits, triggers_y_2d, trigger_hat_2d, argument_hidden, argument_keys
+
+    def argument_loss(self, argument_hidden, argument_keys, arguments_2d):
+        argument_hidden = torch.stack(argument_hidden)
+        argument_logits = self.fc_argument(argument_hidden)
+        argument_hat_1d = argument_logits.argmax(-1)
+
+        arguments_y_1d = []
+        for i, t_start, t_end, t_type_str, e_start, e_end, e_type_str in argument_keys:
+            label = argument2idx[NONE]
+            if (t_start, t_end, t_type_str) in arguments_2d[i]['events']:
+                for a_start, a_end, a_type_str in arguments_2d[i]['events'][(t_start, t_end, t_type_str)]:
+                    if e_start == a_start and e_end == a_end:
+                        label = a_type_str
+                        break
+            arguments_y_1d.append(label)
+
+        arguments_y_1d = torch.LongTensor(arguments_y_1d).to(self.device)
+
+        return argument_logits, arguments_y_1d, argument_hat_1d
 
 
 # Reused from https://github.com/lx865712528/EMNLP2018-JMEE

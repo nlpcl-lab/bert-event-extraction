@@ -11,7 +11,7 @@ from torch.utils import data
 
 from model import Net
 
-from data_load import ACE2005Dataset, pad, all_triggers, all_entities, trigger2idx, idx2trigger, tokenizer
+from data_load import ACE2005Dataset, pad, all_triggers, all_entities, trigger2idx, idx2trigger, all_arguments, tokenizer
 from consts import NONE, PAD
 from utils import calc_metric
 
@@ -21,12 +21,19 @@ def train(model, iterator, optimizer, criterion):
     for i, batch in enumerate(iterator):
         tokens_x_2d, entities_x_3d, triggers_y_2d, arguments_2d, seqlens_1d, head_indexes_2d, words_2d, triggers_2d = batch
         optimizer.zero_grad()
-        logits, trigger, trigger_hat = model(tokens_x_2d, entities_x_3d, head_indexes_2d, triggers_y_2d, arguments_2d)
+        trigger_logits, triggers_y_2d, trigger_hat_2d, argument_hidden, argument_keys = model(tokens_x_2d, entities_x_3d, head_indexes_2d, triggers_y_2d, arguments_2d)
 
-        logits = logits.view(-1, logits.shape[-1])
-        trigger = trigger.view(-1)
+        trigger_logits = trigger_logits.view(-1, trigger_logits.shape[-1])
+        trigger_loss = criterion(trigger_logits, triggers_y_2d.view(-1))
 
-        loss = criterion(logits, trigger)
+        if len(argument_keys) > 0:
+            argument_logits, arguments_y_1d, argument_hat_1d = model.module.argument_loss(argument_hidden, argument_keys, arguments_2d)
+            argument_loss = criterion(argument_logits, arguments_y_1d)
+
+            loss = trigger_loss + argument_loss
+        else:
+            loss = trigger_loss
+
         nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         loss.backward()
 
@@ -39,7 +46,7 @@ def train(model, iterator, optimizer, criterion):
             print("head_indexes_2d:", head_indexes_2d[0][:seqlens_1d[0]])
             print("triggers:", triggers_2d[0])
             print("triggers_y:", triggers_y_2d[0][:seqlens_1d[0]])
-            print('triggers_y_hat:', trigger_hat.cpu().numpy().tolist()[0][:seqlens_1d[0]])
+            print('triggers_y_hat:', trigger_hat_2d.cpu().numpy().tolist()[0][:seqlens_1d[0]])
             print("seqlen:", seqlens_1d[0])
             print("=======================")
 
@@ -113,6 +120,7 @@ if __name__ == "__main__":
         device=device,
         trigger_size=len(all_triggers),
         entity_size=len(all_entities),
+        argument_size=len(all_arguments)
     )
     if device == 'cuda':
         model = model.cuda()
