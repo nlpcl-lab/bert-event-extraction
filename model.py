@@ -91,17 +91,26 @@ class Net(nn.Module):
 
         arguments_y_1d = []
         for i, t_start, t_end, t_type_str, e_start, e_end, e_type_str in argument_keys:
-            label = argument2idx[NONE]
+            a_label = argument2idx[NONE]
             if (t_start, t_end, t_type_str) in arguments_2d[i]['events']:
-                for a_start, a_end, a_type_str in arguments_2d[i]['events'][(t_start, t_end, t_type_str)]:
+                for a_start, a_end, a_type_idx in arguments_2d[i]['events'][(t_start, t_end, t_type_str)]:
                     if e_start == a_start and e_end == a_end:
-                        label = a_type_str
+                        a_label = a_type_idx
                         break
-            arguments_y_1d.append(label)
+            arguments_y_1d.append(a_label)
 
         arguments_y_1d = torch.LongTensor(arguments_y_1d).to(self.device)
 
-        return argument_logits, arguments_y_1d, argument_hat_1d
+        batch_size = len(arguments_2d)
+        argument_hat_2d = [{'events': {}} for _ in range(batch_size)]
+        for (i, st, ed, event_type_str, e_st, e_ed, entity_type), a_label in zip(argument_keys, arguments_y_1d):
+            if a_label == argument2idx[NONE]:
+                continue
+            if (st, ed, event_type_str) not in argument_hat_2d[i]['events']:
+                argument_hat_2d[i]['events'][(st, ed, event_type_str)] = []
+            argument_hat_2d[i]['events'][(st, ed, event_type_str)].append((e_st, e_ed, a_label))
+
+        return argument_logits, arguments_y_1d, argument_hat_1d, argument_hat_2d
 
 
 # Reused from https://github.com/lx865712528/EMNLP2018-JMEE
