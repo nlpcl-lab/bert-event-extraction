@@ -11,7 +11,7 @@ from torch.utils import data
 
 from model import Net
 
-from data_load import ACE2005Dataset, pad, all_triggers, all_entities, trigger2idx, idx2trigger, all_arguments, tokenizer
+from data_load import ACE2005Dataset, pad, all_triggers, all_entities, all_postags, trigger2idx, idx2trigger, all_arguments, tokenizer
 from consts import NONE, PAD
 from utils import calc_metric
 
@@ -19,9 +19,9 @@ from utils import calc_metric
 def train(model, iterator, optimizer, criterion):
     model.train()
     for i, batch in enumerate(iterator):
-        tokens_x_2d, entities_x_3d, triggers_y_2d, arguments_2d, seqlens_1d, head_indexes_2d, words_2d, triggers_2d = batch
+        tokens_x_2d, entities_x_3d, postags_x_2d, triggers_y_2d, arguments_2d, seqlens_1d, head_indexes_2d, words_2d, triggers_2d = batch
         optimizer.zero_grad()
-        trigger_logits, triggers_y_2d, trigger_hat_2d, argument_hidden, argument_keys = model(tokens_x_2d, entities_x_3d, head_indexes_2d, triggers_y_2d, arguments_2d)
+        trigger_logits, triggers_y_2d, trigger_hat_2d, argument_hidden, argument_keys = model(tokens_x_2d, entities_x_3d, postags_x_2d, head_indexes_2d, triggers_y_2d, arguments_2d)
 
         trigger_logits = trigger_logits.view(-1, trigger_logits.shape[-1])
         trigger_loss = criterion(trigger_logits, triggers_y_2d.view(-1))
@@ -29,7 +29,6 @@ def train(model, iterator, optimizer, criterion):
         if len(argument_keys) > 0:
             argument_logits, arguments_y_1d, argument_hat_1d = model.module.argument_loss(argument_hidden, argument_keys, arguments_2d)
             argument_loss = criterion(argument_logits, arguments_y_1d)
-
             loss = trigger_loss + argument_loss
         else:
             loss = trigger_loss
@@ -43,9 +42,10 @@ def train(model, iterator, optimizer, criterion):
             print("=====sanity check======")
             print("tokens:", tokenizer.convert_ids_to_tokens(tokens_x_2d[0])[:seqlens_1d[0]])
             print("entities_x_3d:", entities_x_3d[0][:seqlens_1d[0]])
+            print("postags_x_2d:", postags_x_2d[0][:seqlens_1d[0]])
             print("head_indexes_2d:", head_indexes_2d[0][:seqlens_1d[0]])
             print("triggers:", triggers_2d[0])
-            print("triggers_y:", triggers_y_2d[0][:seqlens_1d[0]])
+            print("triggers_y:", triggers_y_2d.cpu().numpy().tolist()[0][:seqlens_1d[0]])
             print('triggers_y_hat:', trigger_hat_2d.cpu().numpy().tolist()[0][:seqlens_1d[0]])
             print("arguments_2d:", arguments_2d[0])
             print("seqlen:", seqlens_1d[0])
@@ -61,9 +61,9 @@ def eval(model, iterator, fname):
     words_all, trigger_all, trigger_hat_all = [], [], []
     with torch.no_grad():
         for i, batch in enumerate(iterator):
-            tokens_x_2d, entities_x_3d, triggers_y_2d, arguments_2d, seqlens_1d, head_indexes_2d, words_2d, triggers_2d = batch
+            tokens_x_2d, entities_x_3d, postags_x_2d, triggers_y_2d, arguments_2d, seqlens_1d, head_indexes_2d, words_2d, triggers_2d = batch
 
-            trigger_logits, triggers_y_2d, trigger_hat_2d, argument_hidden, argument_keys = model(tokens_x_2d, entities_x_3d, head_indexes_2d, triggers_y_2d, arguments_2d)
+            trigger_logits, triggers_y_2d, trigger_hat_2d, argument_hidden, argument_keys = model(tokens_x_2d, entities_x_3d, postags_x_2d, head_indexes_2d, triggers_y_2d, arguments_2d)
 
             words_all.extend(words_2d)
             trigger_all.extend(triggers_2d)
@@ -121,6 +121,7 @@ if __name__ == "__main__":
         device=device,
         trigger_size=len(all_triggers),
         entity_size=len(all_entities),
+        all_postags=len(all_postags),
         argument_size=len(all_arguments)
     )
     if device == 'cuda':
@@ -166,7 +167,6 @@ if __name__ == "__main__":
         print(f"=========eval at epoch={epoch}=========")
         fname = os.path.join(hp.logdir, str(epoch))
 
-        # eval(model, train_iter, fname + '_train')
         eval(model, dev_iter, fname + '_dev')
         eval(model, test_iter, fname + '_test')
 

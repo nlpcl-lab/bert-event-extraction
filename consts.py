@@ -133,3 +133,14 @@ ENTITIES = ['VEH:Water',
             'ORG:Medical-Science',
             'FAC:Plant',
             'GPE:Continent']
+
+# 45 pos tags
+POSTAGS = ['VBZ', 'NNS', 'JJR', 'VB', 'RBR',
+           'WP', 'NNP', 'RP', 'RBS', 'VBP',
+           'IN', 'UH', 'JJS', 'NNPS', 'PRP$',
+           'MD', 'DT', 'WP$', 'POS', 'LS',
+           'CC', 'VBN', 'EX', 'NN', 'VBG',
+           'SYM', 'FW', 'TO', 'JJ', 'VBD',
+           'WRB', 'CD', 'PDT', 'WDT', 'PRP',
+           'RB', ',', '``', "''", ':',
+           '.', '$', '#', '-LRB-', '-RRB-']
