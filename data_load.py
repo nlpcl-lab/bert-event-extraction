@@ -52,8 +52,6 @@ class ACE2005Dataset(data.Dataset):
                             entities[i].append(entity_type)
 
                 for event_mention in item['golden-event-mentions']:
-                    arguments['events'][event_mention['event_type']] = []
-
                     for i in range(event_mention['trigger']['start'], event_mention['trigger']['end']):
                         trigger_type = event_mention['event_type']
                         if i == event_mention['trigger']['start']:
@@ -61,8 +59,10 @@ class ACE2005Dataset(data.Dataset):
                         else:
                             triggers[i] = 'I-{}'.format(trigger_type)
 
+                    event_key = (event_mention['trigger']['start'], event_mention['trigger']['end'], event_mention['event_type'])
+                    arguments['events'][event_key] = []
                     for argument in event_mention['arguments']:
-                        arguments['events'][event_mention['event_type']].append((argument['start'], argument['end'], argument['role']))
+                        arguments['events'][event_key].append((argument['start'], argument['end'], argument['role']))
 
                 self.sent_li.append([CLS] + words + [SEP])
                 self.entities_li.append([[PAD]] + entities + [[PAD]])

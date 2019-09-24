@@ -31,7 +31,7 @@ class Net(nn.Module):
         )
         self.device = device
 
-    def forward(self, tokens_x_2d, entities_x_3d, postags_x_2d, head_indexes_2d, triggers_y_2d, arguments_2d):
+    def predict_triggers(self, tokens_x_2d, entities_x_3d, postags_x_2d, head_indexes_2d, triggers_y_2d, arguments_2d):
         tokens_x_2d = torch.LongTensor(tokens_x_2d).to(self.device)
         postags_x_2d = torch.LongTensor(postags_x_2d).to(self.device)
         triggers_y_2d = torch.LongTensor(triggers_y_2d).to(self.device)
@@ -84,7 +84,7 @@ class Net(nn.Module):
 
         return trigger_logits, triggers_y_2d, trigger_hat_2d, argument_hidden, argument_keys
 
-    def argument_loss(self, argument_hidden, argument_keys, arguments_2d):
+    def predict_arguments(self, argument_hidden, argument_keys, arguments_2d):
         argument_hidden = torch.stack(argument_hidden)
         argument_logits = self.fc_argument(argument_hidden)
         argument_hat_1d = argument_logits.argmax(-1)
