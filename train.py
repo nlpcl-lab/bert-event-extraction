@@ -1,28 +1,32 @@
 import os
-import numpy as np
 import argparse
+
+from sklearn.metrics import classification_report
+import numpy as np
 
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils import data
+
 from model import Net
 
 from data_load import ACE2005Dataset, pad, all_triggers, all_entities, trigger2idx, idx2trigger, tokenizer
+from consts import NONE, PAD
 from utils import calc_metric
 
 
 def train(model, iterator, optimizer, criterion):
     model.train()
     for i, batch in enumerate(iterator):
-        tokens_x_2d, entities_x_3d, triggers_y_2d, arguments_y_2d, seqlens_1d, is_heads_2d, words_2d, triggers_2d = batch
+        tokens_x_2d, entities_x_3d, triggers_y_2d, arguments_2d, seqlens_1d, head_indexes_2d, words_2d, triggers_2d = batch
         optimizer.zero_grad()
-        logits, y, y_hat = model(tokens_x_2d, entities_x_3d, triggers_y_2d)
+        logits, trigger, trigger_hat = model(tokens_x_2d, entities_x_3d, head_indexes_2d, triggers_y_2d, arguments_2d)
 
         logits = logits.view(-1, logits.shape[-1])
-        y = y.view(-1)
+        trigger = trigger.view(-1)
 
-        loss = criterion(logits, y)
+        loss = criterion(logits, trigger)
         nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         loss.backward()
 
@@ -32,10 +36,10 @@ def train(model, iterator, optimizer, criterion):
             print("=====sanity check======")
             print("tokens:", tokenizer.convert_ids_to_tokens(tokens_x_2d[0])[:seqlens_1d[0]])
             print("entities_x_3d:", entities_x_3d[0][:seqlens_1d[0]])
-            print("is_heads:", is_heads_2d[0])
+            print("head_indexes_2d:", head_indexes_2d[0][:seqlens_1d[0]])
             print("triggers:", triggers_2d[0])
             print("triggers_y:", triggers_y_2d[0][:seqlens_1d[0]])
-            print('triggers_y_hat:', y_hat.cpu().numpy().tolist()[0][:seqlens_1d[0]])
+            print('triggers_y_hat:', trigger_hat.cpu().numpy().tolist()[0][:seqlens_1d[0]])
             print("seqlen:", seqlens_1d[0])
             print("=======================")
 
@@ -46,29 +50,24 @@ def train(model, iterator, optimizer, criterion):
 def eval(model, iterator, fname):
     model.eval()
 
-    Words, Is_heads, Triggers, Y, Y_hat = [], [], [], [], []
+    words_all, trigger_all, trigger_hat_all = [], [], []
     with torch.no_grad():
         for i, batch in enumerate(iterator):
-            tokens_x_2d, entities_x_3d, triggers_y_2d, arguments_y_2d, seqlens_1d, is_heads_2d, words_2d, triggers_2d = batch
+            tokens_x_2d, entities_x_3d, triggers_y_2d, arguments_2d, seqlens_1d, head_indexes_2d, words_2d, triggers_2d = batch
 
-            _, _, y_hat = model(tokens_x_2d, entities_x_3d, triggers_y_2d)
+            _, _, trigger_hat = model(tokens_x_2d, entities_x_3d, head_indexes_2d, triggers_y_2d, arguments_2d)
 
-            Words.extend(words_2d)
-            Is_heads.extend(is_heads_2d)
-            Triggers.extend(triggers_2d)
-            Y.extend(triggers_y_2d)
-            Y_hat.extend(y_hat.cpu().numpy().tolist())
+            words_all.extend(words_2d)
+            trigger_all.extend(triggers_2d)
+            trigger_hat_all.extend(trigger_hat.cpu().numpy().tolist())
 
     # save
     with open('temp', 'w') as fout:
-        for words, is_heads, triggers, y_hat in zip(Words, Is_heads, Triggers, Y_hat):
-            y_hat = [hat for head, hat in zip(is_heads, y_hat) if head == 1]
-            preds = [idx2trigger[hat] for hat in y_hat]
+        for words, triggers, trigger_hat in zip(words_all, trigger_all, trigger_hat_all):
+            trigger_hat = trigger_hat[:len(words)]
+            trigger_hat = [idx2trigger[hat] for hat in trigger_hat]
 
-            assert len(preds) == len(words) == len(triggers), \
-                'len(preds)={}, len(words.split())={}, len(triggers.split())={}'.format(len(preds), len(words.split()), len(triggers.split()))
-
-            for w, t, p in zip(words[1:-1], triggers[1:-1], preds[1:-1]):
+            for w, t, p in zip(words[1:-1], triggers[1:-1], trigger_hat[1:-1]):
                 fout.write(f"{w}\t{t}\t{p}\n")
             fout.write("\n")
 
@@ -81,6 +80,7 @@ def eval(model, iterator, fname):
                 y_pred.append(trigger2idx[line.split('\t')[2]])
 
     precision, recall, f1 = calc_metric(y_true, y_pred)
+    # print(classification_report([idx2trigger[idx] for idx in y_true], [idx2trigger[idx] for idx in y_pred]))
 
     if f1 > 0.69:
         final = fname + ".P%.2f_R%.2f_F%.2f" % (precision, recall, f1)
@@ -98,7 +98,7 @@ def eval(model, iterator, fname):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--batch_size", type=int, default=30)
+    parser.add_argument("--batch_size", type=int, default=24)
     parser.add_argument("--lr", type=float, default=0.00002)
     parser.add_argument("--n_epochs", type=int, default=100)
     parser.add_argument("--logdir", type=str, default="logdir")
@@ -116,6 +116,7 @@ if __name__ == "__main__":
     )
     if device == 'cuda':
         model = model.cuda()
+
     model = nn.DataParallel(model)
 
     train_dataset = ACE2005Dataset(hp.trainset)
@@ -139,6 +140,12 @@ if __name__ == "__main__":
                                 collate_fn=pad)
 
     optimizer = optim.Adam(model.parameters(), lr=hp.lr)
+    # optimizer = optim.Adadelta(model.parameters(), lr=1.0, weight_decay=1e-2)
+
+    # weight = torch.ones([len(all_triggers)]) * 2
+    # weight[trigger2idx[NONE]] = 1.0
+    # weight = weight.to(device)
+
     criterion = nn.CrossEntropyLoss(ignore_index=0)
 
     if not os.path.exists(hp.logdir):
