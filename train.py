@@ -32,6 +32,11 @@ def train(model, iterator, optimizer, criterion):
             argument_logits, arguments_y_1d, argument_hat_1d, argument_hat_2d = model.module.predict_arguments(argument_hidden, argument_keys, arguments_2d)
             argument_loss = criterion(argument_logits, arguments_y_1d)
             loss = trigger_loss + 2 * argument_loss
+            print("=====sanity check======")
+            print('arguments_y_1d:', arguments_y_1d)
+            print("arguments_2d[0]:", arguments_2d[0]['events'])
+            print("argument_hat_2d[0]:", argument_hat_2d[0]['events'])
+            print("=======================")
         else:
             loss = trigger_loss
 

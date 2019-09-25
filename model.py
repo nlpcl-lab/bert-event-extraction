@@ -21,14 +21,14 @@ class Net(nn.Module):
         hidden_size = 768 + entity_embedding_dim + postag_embedding_dim
         self.fc1 = nn.Sequential(
             nn.Dropout(0.5),
-            nn.Linear(hidden_size, hidden_size, bias=True),
+            nn.Linear(hidden_size, 768, bias=True),
             nn.ReLU(),
         )
         self.fc_trigger = nn.Sequential(
-            nn.Linear(hidden_size, trigger_size),
+            nn.Linear(768, trigger_size),
         )
         self.fc_argument = nn.Sequential(
-            nn.Linear(hidden_size * 2, argument_size),
+            nn.Linear(768 * 2, argument_size),
         )
         self.device = device
 
@@ -53,7 +53,7 @@ class Net(nn.Module):
 
         x = torch.cat([enc, entity_x_2d, postags_x_2d], 2)
         x = self.fc1(x)  # x: [batch_size, seq_len, hidden_size]
-        # logits = self.fc2(out + enc)
+        # logits = self.fc2(x + enc)
 
         batch_size = tokens_x_2d.shape[0]
 
@@ -104,7 +104,7 @@ class Net(nn.Module):
 
         batch_size = len(arguments_2d)
         argument_hat_2d = [{'events': {}} for _ in range(batch_size)]
-        for (i, st, ed, event_type_str, e_st, e_ed, entity_type), a_label in zip(argument_keys, arguments_y_1d):
+        for (i, st, ed, event_type_str, e_st, e_ed, entity_type), a_label in zip(argument_keys, arguments_y_1d.cpu().numpy()):
             if a_label == argument2idx[NONE]:
                 continue
             if (st, ed, event_type_str) not in argument_hat_2d[i]['events']:
