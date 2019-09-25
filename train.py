@@ -160,8 +160,8 @@ if __name__ == "__main__":
     parser.add_argument("--devset", type=str, default="data/dev.json")
     parser.add_argument("--testset", type=str, default="data/test.json")
 
-    parser.add_argument("--bot_token", type=str, default="")
-    parser.add_argument("--chat_id", type=str, default="")
+    parser.add_argument("--telegram_bot_token", type=str, default="")
+    parser.add_argument("--telegram_chat_id", type=str, default="")
 
     hp = parser.parse_args()
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -216,9 +216,9 @@ if __name__ == "__main__":
         print(f"=========eval test at epoch={epoch}=========")
         metric_test = eval(model, test_iter, fname + '_test')
 
-        if hp.bot_token:
-            report_to_telegram('[epoch {}]\n{}'.format(epoch, metric_dev), hp.bot_token, hp.chat_id)
-            report_to_telegram('[epoch {}]\n{}'.format(epoch, metric_test), hp.bot_token, hp.chat_id)
+        if hp.telegram_bot_token:
+            report_to_telegram('[epoch {}] dev\n{}'.format(epoch, metric_dev), hp.telegram_bot_token, hp.telegram_chat_id)
+            report_to_telegram('[epoch {}] test\n{}'.format(epoch, metric_test), hp.telegram_bot_token, hp.telegram_chat_id)
 
         torch.save(model.state_dict(), "latest_model.pt")
         # print(f"weights were saved to {fname}.pt")

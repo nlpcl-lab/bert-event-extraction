@@ -76,6 +76,7 @@ def find_triggers(labels):
     return [tuple(item) for item in result]
 
 
+# To watch performance comfortably on a telegram when training for a long time
 def report_to_telegram(text, bot_token, chat_id):
     try:
         import requests
