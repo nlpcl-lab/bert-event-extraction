@@ -2,16 +2,13 @@ __pycache__/
 venv/
 .idea/
 
-data/ace_2005_td_v7
 
 data/test.json
 data/train.json
 data/dev.json
 
+data/ace_2005_td_v7
 stanford-corenlp-full-2018-10-05.zip
 stanford-corenlp-full-2018-10-05/
 
-test/
-analysis/
 logdir/
-baseline/
