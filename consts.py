@@ -44,10 +44,8 @@ TRIGGERS = ['Business:Merge-Org',
 """
     28 argument roles
     
-    There are 35 roles in ACE2005 dataset, but the time-related roles have been put together as the previous work (Yang et al., 2016).
-    
-    Time-related 8 arguments('Time-At-End','Time-Before','Time-At-Beginning','Time-Ending',
-    'Time-Holds', 'Time-After','Time-Starting', 'Time-Within') --> 'Time'
+    There are 35 roles in ACE2005 dataset, but the time-related 8 roles were replaced by 'Time' as the previous work (Yang et al., 2016).
+    ['Time-At-End','Time-Before','Time-At-Beginning','Time-Ending', 'Time-Holds', 'Time-After','Time-Starting', 'Time-Within'] --> 'Time'.
 """
 ARGUMENTS = ['Place',
              'Crime',

@@ -152,7 +152,7 @@ def eval(model, iterator, fname):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--batch_size", type=int, default=64)
-    parser.add_argument("--lr", type=float, default=0.00002)
+    parser.add_argument("--lr", type=float, default=0.00004)
     parser.add_argument("--n_epochs", type=int, default=100)
     parser.add_argument("--logdir", type=str, default="logdir")
     parser.add_argument("--trainset", type=str, default="data/train.json")
