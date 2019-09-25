@@ -126,24 +126,27 @@ def eval(model, iterator, fname):
     print('P={:.3f}\tR={:.3f}\tF1={:.3f}'.format(argument_p, argument_r, argument_f1))
     # print(classification_report([idx2trigger[idx] for idx in y_true], [idx2trigger[idx] for idx in y_pred]))
 
-    final = fname + ".P%.2f_R%.2f_F%.2f" % (trigger_p, trigger_r, trigger_f1)
-    with open(final, 'w') as fout:
-        result = open("temp", "r").read()
-        fout.write(f"{result}\n")
-
-    os.remove("temp")
-
     print('[trigger identification]')
     triggers_true = [(item[0], item[1], item[2]) for item in triggers_true]
     triggers_pred = [(item[0], item[1], item[2]) for item in triggers_pred]
-    trigger_p, trigger_r, trigger_f1 = calc_metric(triggers_true, triggers_pred)
-    print('P={:.3f}\tR={:.3f}\tF1={:.3f}'.format(trigger_p, trigger_r, trigger_f1))
+    trigger_p_, trigger_r_, trigger_f1_ = calc_metric(triggers_true, triggers_pred)
+    print('P={:.3f}\tR={:.3f}\tF1={:.3f}'.format(trigger_p_, trigger_p_, trigger_f1_))
 
     print('[argument identification]')
     arguments_true = [(item[0], item[1], item[2], item[3], item[4], item[5]) for item in arguments_true]
     arguments_pred = [(item[0], item[1], item[2], item[3], item[4], item[5]) for item in arguments_pred]
-    argument_p, argument_r, argument_f1 = calc_metric(arguments_true, arguments_pred)
-    print('P={:.3f}\tR={:.3f}\tF1={:.3f}'.format(argument_p, argument_r, argument_f1))
+    argument_p_, argument_r_, argument_f1_ = calc_metric(arguments_true, arguments_pred)
+    print('P={:.3f}\tR={:.3f}\tF1={:.3f}'.format(argument_p_, argument_r_, argument_f1_))
+
+    final = fname + ".P%.2f_R%.2f_F%.2f" % (trigger_p, trigger_r, trigger_f1)
+    with open(final, 'w') as fout:
+        result = open("temp", "r").read()
+        fout.write("{}\n".format(result))
+        fout.write('[trigger classification]\tP={:.3f}\tR={:.3f}\tF1={:.3f}\n'.format(trigger_p, trigger_r, trigger_f1))
+        fout.write('[argument classification]\tP={:.3f}\tR={:.3f}\tF1={:.3f}\n'.format(argument_p, argument_r, argument_f1))
+        fout.write('[trigger identification]\tP={:.3f}\tR={:.3f}\tF1={:.3f}\n'.format(trigger_p_, trigger_r_, trigger_f1_))
+        fout.write('[argument identification]\tP={:.3f}\tR={:.3f}\tF1={:.3f}\n'.format(argument_p_, argument_r_, argument_f1_))
+    os.remove("temp")
 
 
 if __name__ == "__main__":
