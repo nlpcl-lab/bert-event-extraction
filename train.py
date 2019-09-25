@@ -31,8 +31,7 @@ def train(model, iterator, optimizer, criterion):
         if len(argument_keys) > 0:
             argument_logits, arguments_y_1d, argument_hat_1d, argument_hat_2d = model.module.predict_arguments(argument_hidden, argument_keys, arguments_2d)
             argument_loss = criterion(argument_logits, arguments_y_1d)
-            loss = trigger_loss + 5 * argument_loss
-            print('arguments_y_1d:', arguments_y_1d)
+            loss = trigger_loss + 2 * argument_loss
         else:
             loss = trigger_loss
 
