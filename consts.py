@@ -41,10 +41,15 @@ TRIGGERS = ['Business:Merge-Org',
             'Life:Injure',
             'Movement:Transport']
 
-# 35 argument roles
+"""
+    28 argument roles
+    
+    There are 35 roles in ACE2005 dataset, but the time-related roles have been put together as the previous work (Yang et al., 2016).
+    
+    Time-related 8 arguments('Time-At-End','Time-Before','Time-At-Beginning','Time-Ending',
+    'Time-Holds', 'Time-After','Time-Starting', 'Time-Within') --> 'Time'
+"""
 ARGUMENTS = ['Place',
-             'Time-At-End',
-             'Time-Before',
              'Crime',
              'Prosecutor',
              'Sentence',
@@ -54,29 +59,24 @@ ARGUMENTS = ['Place',
              'Agent',
              'Recipient',
              'Target',
-             'Time-Within',
              'Defendant',
              'Plaintiff',
              'Origin',
              'Artifact',
-             'Time-At-Beginning',
-             'Time-Ending',
              'Giver',
              'Position',
              'Instrument',
              'Money',
              'Destination',
-             'Time-After',
              'Buyer',
              'Beneficiary',
-             'Time-Starting',
              'Attacker',
-             'Time-Holds',
              'Adjudicator',
              'Person',
              'Victim',
              'Price',
-             'Vehicle']
+             'Vehicle',
+             'Time']
 
 # 54 entities
 ENTITIES = ['VEH:Water',

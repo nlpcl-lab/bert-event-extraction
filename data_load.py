@@ -62,7 +62,10 @@ class ACE2005Dataset(data.Dataset):
                     event_key = (event_mention['trigger']['start'], event_mention['trigger']['end'], event_mention['event_type'])
                     arguments['events'][event_key] = []
                     for argument in event_mention['arguments']:
-                        arguments['events'][event_key].append((argument['start'], argument['end'], argument['role']))
+                        role = argument['role']
+                        if role.startswith('Time'):
+                            role = role.split('-')[0]
+                        arguments['events'][event_key].append((argument['start'], argument['end'], role))
 
                 self.sent_li.append([CLS] + words + [SEP])
                 self.entities_li.append([[PAD]] + entities + [[PAD]])
