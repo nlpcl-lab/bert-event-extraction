@@ -78,8 +78,7 @@ class ACE2005Dataset(data.Dataset):
 
         # We give credits only to the first piece.
         tokens_x, entities_x, postags_x, is_heads = [], [], [], []
-        triggers_y = []
-        for w, e, p, t in zip(words, entities, postags, triggers):
+        for w, e, p in zip(words, entities, postags):
             tokens = tokenizer.tokenize(w) if w not in [CLS, SEP] else [w]
             tokens_xx = tokenizer.convert_tokens_to_ids(tokens)
 
@@ -93,11 +92,9 @@ class ACE2005Dataset(data.Dataset):
             p = [postag2idx[postag] for postag in p]
             e = [[entity2idx[entity] for entity in entities] for entities in e]
 
-            t = [trigger2idx[t]]
-
             tokens_x.extend(tokens_xx), postags_x.extend(p), entities_x.extend(e), is_heads.extend(is_head)
-            triggers_y.extend(t)
 
+        triggers_y = [trigger2idx[t] for t in triggers]
         for event in arguments['events']:
             for i in range(len(arguments['events'][event])):
                 argument = arguments['events'][event][i]
