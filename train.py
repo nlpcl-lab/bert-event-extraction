@@ -1,7 +1,6 @@
 import os
 import argparse
 
-from sklearn.metrics import classification_report
 import numpy as np
 
 import torch
