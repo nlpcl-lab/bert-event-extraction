@@ -16,7 +16,7 @@ from consts import NONE, PAD
 from utils import calc_metric, find_triggers
 
 
-def train(model, iterator, optimizer, criterion):
+def train(model, iterator, optimizer, criterion, epoch):
     model.train()
     for i, batch in enumerate(iterator):
         tokens_x_2d, entities_x_3d, postags_x_2d, triggers_y_2d, arguments_2d, seqlens_1d, head_indexes_2d, words_2d, triggers_2d = batch
@@ -28,10 +28,10 @@ def train(model, iterator, optimizer, criterion):
         trigger_logits = trigger_logits.view(-1, trigger_logits.shape[-1])
         trigger_loss = criterion(trigger_logits, triggers_y_2d.view(-1))
 
-        if len(argument_keys) > 0:
+        if epoch >= 5 and len(argument_keys) > 0:
             argument_logits, arguments_y_1d, argument_hat_1d, argument_hat_2d = model.module.predict_arguments(argument_hidden, argument_keys, arguments_2d)
             argument_loss = criterion(argument_logits, arguments_y_1d)
-            loss = trigger_loss + argument_loss
+            loss = trigger_loss + 2 * argument_loss
             if i == 0:
                 print("=====sanity check for arguments======")
                 print('arguments_y_1d:', arguments_y_1d)
@@ -117,6 +117,8 @@ def eval(model, iterator, fname):
             fout.write('#arguments_hat#{}\n'.format(arguments_hat['events']))
             fout.write("\n")
 
+    # print(classification_report([idx2trigger[idx] for idx in y_true], [idx2trigger[idx] for idx in y_pred]))
+
     print('[trigger classification]')
     trigger_p, trigger_r, trigger_f1 = calc_metric(triggers_true, triggers_pred)
     print('P={:.3f}\tR={:.3f}\tF1={:.3f}'.format(trigger_p, trigger_r, trigger_f1))
@@ -124,8 +126,6 @@ def eval(model, iterator, fname):
     print('[argument classification]')
     argument_p, argument_r, argument_f1 = calc_metric(arguments_true, arguments_pred)
     print('P={:.3f}\tR={:.3f}\tF1={:.3f}'.format(argument_p, argument_r, argument_f1))
-    # print(classification_report([idx2trigger[idx] for idx in y_true], [idx2trigger[idx] for idx in y_pred]))
-
     print('[trigger identification]')
     triggers_true = [(item[0], item[1], item[2]) for item in triggers_true]
     triggers_pred = [(item[0], item[1], item[2]) for item in triggers_pred]
@@ -197,17 +197,13 @@ if __name__ == "__main__":
     optimizer = optim.Adam(model.parameters(), lr=hp.lr)
     # optimizer = optim.Adadelta(model.parameters(), lr=1.0, weight_decay=1e-2)
 
-    # weight = torch.ones([len(all_triggers)]) * 2
-    # weight[trigger2idx[NONE]] = 1.0
-    # weight = weight.to(device)
-
     criterion = nn.CrossEntropyLoss(ignore_index=0)
 
     if not os.path.exists(hp.logdir):
         os.makedirs(hp.logdir)
 
     for epoch in range(1, hp.n_epochs + 1):
-        train(model, train_iter, optimizer, criterion)
+        train(model, train_iter, optimizer, criterion, epoch)
 
         fname = os.path.join(hp.logdir, str(epoch))
         print(f"=========eval dev at epoch={epoch}=========")

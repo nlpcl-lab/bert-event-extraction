@@ -21,14 +21,16 @@ class Net(nn.Module):
         hidden_size = 768 + entity_embedding_dim + postag_embedding_dim
         self.fc1 = nn.Sequential(
             nn.Dropout(0.5),
-            nn.Linear(hidden_size, 768, bias=True),
+            nn.Linear(hidden_size, hidden_size, bias=True),
             nn.ReLU(),
         )
         self.fc_trigger = nn.Sequential(
-            nn.Linear(768, trigger_size),
+            nn.Dropout(0.3),
+            nn.Linear(hidden_size, trigger_size),
         )
         self.fc_argument = nn.Sequential(
-            nn.Linear(768 * 2, argument_size),
+            nn.Dropout(0.3),
+            nn.Linear(hidden_size * 2, argument_size),
         )
         self.device = device
 
