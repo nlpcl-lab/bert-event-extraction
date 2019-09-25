@@ -104,7 +104,7 @@ class Net(nn.Module):
 
         batch_size = len(arguments_2d)
         argument_hat_2d = [{'events': {}} for _ in range(batch_size)]
-        for (i, st, ed, event_type_str, e_st, e_ed, entity_type), a_label in zip(argument_keys, arguments_y_1d.cpu().numpy()):
+        for (i, st, ed, event_type_str, e_st, e_ed, entity_type), a_label in zip(argument_keys, argument_hat_1d.cpu().numpy()):
             if a_label == argument2idx[NONE]:
                 continue
             if (st, ed, event_type_str) not in argument_hat_2d[i]['events']:
