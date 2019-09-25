@@ -31,12 +31,13 @@ def train(model, iterator, optimizer, criterion):
         if len(argument_keys) > 0:
             argument_logits, arguments_y_1d, argument_hat_1d, argument_hat_2d = model.module.predict_arguments(argument_hidden, argument_keys, arguments_2d)
             argument_loss = criterion(argument_logits, arguments_y_1d)
-            loss = trigger_loss + 2 * argument_loss
-            print("=====sanity check======")
-            print('arguments_y_1d:', arguments_y_1d)
-            print("arguments_2d[0]:", arguments_2d[0]['events'])
-            print("argument_hat_2d[0]:", argument_hat_2d[0]['events'])
-            print("=======================")
+            loss = trigger_loss + argument_loss
+            if len(arguments_2d[0]['events'].keys()) > 0:
+                print("=====sanity check======")
+                print('arguments_y_1d:', arguments_y_1d)
+                print("arguments_2d[0]:", arguments_2d[0]['events'])
+                print("argument_hat_2d[0]:", argument_hat_2d[0]['events'])
+                print("=======================")
         else:
             loss = trigger_loss
 
@@ -93,10 +94,6 @@ def eval(model, iterator, fname):
             triggers_hat = triggers_hat[:len(words)]
             triggers_hat = [idx2trigger[hat] for hat in triggers_hat]
 
-            for w, t, t_h in zip(words[1:-1], triggers[1:-1], triggers_hat[1:-1]):
-                fout.write(f"{w}\t{t}\t{t_h}\n")
-            fout.write("\n")
-
             # [(ith sentence, t_start, t_end, t_type_str)]
             triggers_true.extend([(i, *item) for item in find_triggers(triggers)])
             triggers_pred.extend([(i, *item) for item in find_triggers(triggers_hat)])
@@ -114,6 +111,12 @@ def eval(model, iterator, fname):
                     a_start, a_end, a_type_idx = argument
                     arguments_pred.append((i, t_start, t_end, t_type_str, a_start, a_end, a_type_idx))
 
+            for w, t, t_h in zip(words[1:-1], triggers[1:-1], triggers_hat[1:-1]):
+                fout.write('{}\t{}\t{}\n'.format(w, t, t_h))
+            fout.write('#arguments#{}\n'.format(arguments['events']))
+            fout.write('#arguments_hat#{}\n'.format(arguments_hat['events']))
+            fout.write("\n")
+
     print('[trigger classification]')
     trigger_p, trigger_r, trigger_f1 = calc_metric(triggers_true, triggers_pred)
     print('P={:.3f}\tR={:.3f}\tF1={:.3f}'.format(trigger_p, trigger_r, trigger_f1))
@@ -123,11 +126,10 @@ def eval(model, iterator, fname):
     print('P={:.3f}\tR={:.3f}\tF1={:.3f}'.format(argument_p, argument_r, argument_f1))
     # print(classification_report([idx2trigger[idx] for idx in y_true], [idx2trigger[idx] for idx in y_pred]))
 
-    if trigger_f1 > 0.69:
-        final = fname + ".P%.2f_R%.2f_F%.2f" % (trigger_p, trigger_r, trigger_f1)
-        with open(final, 'w') as fout:
-            result = open("temp", "r").read()
-            fout.write(f"{result}\n")
+    final = fname + ".P%.2f_R%.2f_F%.2f" % (trigger_p, trigger_r, trigger_f1)
+    with open(final, 'w') as fout:
+        result = open("temp", "r").read()
+        fout.write(f"{result}\n")
 
     os.remove("temp")
 
