@@ -111,7 +111,7 @@ def eval(model, iterator, fname):
                     a_start, a_end, a_type_idx = argument
                     arguments_pred.append((i, t_start, t_end, t_type_str, a_start, a_end, a_type_idx))
 
-            for w, t, t_h in zip(words[1:-1], triggers[1:-1], triggers_hat[1:-1]):
+            for w, t, t_h in zip(words[1:-1], triggers, triggers_hat):
                 fout.write('{}\t{}\t{}\n'.format(w, t, t_h))
             fout.write('#arguments#{}\n'.format(arguments['events']))
             fout.write('#arguments_hat#{}\n'.format(arguments_hat['events']))
@@ -148,7 +148,7 @@ def eval(model, iterator, fname):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--batch_size", type=int, default=24)
+    parser.add_argument("--batch_size", type=int, default=64)
     parser.add_argument("--lr", type=float, default=0.00002)
     parser.add_argument("--n_epochs", type=int, default=100)
     parser.add_argument("--logdir", type=str, default="logdir")
