@@ -31,7 +31,8 @@ def train(model, iterator, optimizer, criterion):
         if len(argument_keys) > 0:
             argument_logits, arguments_y_1d, argument_hat_1d, argument_hat_2d = model.module.predict_arguments(argument_hidden, argument_keys, arguments_2d)
             argument_loss = criterion(argument_logits, arguments_y_1d)
-            loss = trigger_loss + argument_loss
+            loss = trigger_loss + 5 * argument_loss
+            print('arguments_y_1d:', arguments_y_1d)
         else:
             loss = trigger_loss
 
@@ -49,8 +50,8 @@ def train(model, iterator, optimizer, criterion):
             print("triggers_2d[0]:", triggers_2d[0])
             print("triggers_y_2d[0]:", triggers_y_2d.cpu().numpy().tolist()[0][:seqlens_1d[0]])
             print('trigger_hat_2d[0]:', trigger_hat_2d.cpu().numpy().tolist()[0][:seqlens_1d[0]])
-            print("arguments_2d[0]:", arguments_2d[0])
             print("seqlens_1d[0]:", seqlens_1d[0])
+            print("arguments_2d[0]:", arguments_2d[0])
             print("=======================")
 
         if i % 10 == 0:  # monitoring

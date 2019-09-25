@@ -67,7 +67,7 @@ class ACE2005Dataset(data.Dataset):
                 self.sent_li.append([CLS] + words + [SEP])
                 self.entities_li.append([[PAD]] + entities + [[PAD]])
                 self.postags_li.append([PAD] + postags + [PAD])
-                self.triggers_li.append([PAD] + triggers + [PAD])
+                self.triggers_li.append(triggers)
                 self.arguments_li.append(arguments)
 
     def __len__(self):
@@ -103,7 +103,7 @@ class ACE2005Dataset(data.Dataset):
                 argument = arguments['events'][event][i]
                 arguments['events'][event][i] = (argument[0], argument[1], argument2idx[argument[2]])
 
-        head_indexes = [0]
+        head_indexes = []
         for i in range(len(is_heads)):
             if is_heads[i]:
                 head_indexes.append(i)

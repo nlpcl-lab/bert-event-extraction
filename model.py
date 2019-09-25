@@ -18,16 +18,17 @@ class Net(nn.Module):
         self.postag_embed = nn.Embedding(num_embeddings=all_postags, embedding_dim=postag_embedding_dim)
         self.rnn = nn.LSTM(bidirectional=True, num_layers=1, input_size=768 + entity_embedding_dim, hidden_size=768 // 2, batch_first=True)
 
+        hidden_size = 768 + entity_embedding_dim + postag_embedding_dim
         self.fc1 = nn.Sequential(
             nn.Dropout(0.5),
-            nn.Linear(768 + entity_embedding_dim + postag_embedding_dim, 768, bias=True),
+            nn.Linear(hidden_size, hidden_size, bias=True),
             nn.ReLU(),
         )
         self.fc_trigger = nn.Sequential(
-            nn.Linear(768, trigger_size),
+            nn.Linear(hidden_size, trigger_size),
         )
         self.fc_argument = nn.Sequential(
-            nn.Linear(768 * 2, argument_size),
+            nn.Linear(hidden_size * 2, argument_size),
         )
         self.device = device
 
@@ -92,8 +93,8 @@ class Net(nn.Module):
         arguments_y_1d = []
         for i, t_start, t_end, t_type_str, e_start, e_end, e_type_str in argument_keys:
             a_label = argument2idx[NONE]
-            if (t_start, t_end, t_type_str) in arguments_2d[i]['events']:
-                for a_start, a_end, a_type_idx in arguments_2d[i]['events'][(t_start, t_end, t_type_str)]:
+            if (t_start, t_end , t_type_str) in arguments_2d[i]['events']:
+                for (a_start, a_end, a_type_idx) in arguments_2d[i]['events'][(t_start, t_end, t_type_str)]:
                     if e_start == a_start and e_end == a_end:
                         a_label = a_type_idx
                         break
