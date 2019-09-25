@@ -12,7 +12,7 @@ from model import Net
 
 from data_load import ACE2005Dataset, pad, all_triggers, all_entities, all_postags, argument2idx, trigger2idx, idx2trigger, all_arguments, tokenizer
 from consts import NONE, PAD
-from utils import calc_metric, find_triggers
+from utils import calc_metric, find_triggers, report_to_telegram
 
 
 def train(model, iterator, optimizer, criterion, epoch):
@@ -137,15 +137,17 @@ def eval(model, iterator, fname):
     argument_p_, argument_r_, argument_f1_ = calc_metric(arguments_true, arguments_pred)
     print('P={:.3f}\tR={:.3f}\tF1={:.3f}'.format(argument_p_, argument_r_, argument_f1_))
 
+    metric = '[trigger classification]\tP={:.3f}\tR={:.3f}\tF1={:.3f}\n'.format(trigger_p, trigger_r, trigger_f1)
+    metric += '[argument classification]\tP={:.3f}\tR={:.3f}\tF1={:.3f}\n'.format(argument_p, argument_r, argument_f1)
+    metric += '[trigger identification]\tP={:.3f}\tR={:.3f}\tF1={:.3f}\n'.format(trigger_p_, trigger_r_, trigger_f1_)
+    metric += '[argument identification]\tP={:.3f}\tR={:.3f}\tF1={:.3f}\n'.format(argument_p_, argument_r_, argument_f1_)
     final = fname + ".P%.2f_R%.2f_F%.2f" % (trigger_p, trigger_r, trigger_f1)
     with open(final, 'w') as fout:
         result = open("temp", "r").read()
         fout.write("{}\n".format(result))
-        fout.write('[trigger classification]\tP={:.3f}\tR={:.3f}\tF1={:.3f}\n'.format(trigger_p, trigger_r, trigger_f1))
-        fout.write('[argument classification]\tP={:.3f}\tR={:.3f}\tF1={:.3f}\n'.format(argument_p, argument_r, argument_f1))
-        fout.write('[trigger identification]\tP={:.3f}\tR={:.3f}\tF1={:.3f}\n'.format(trigger_p_, trigger_r_, trigger_f1_))
-        fout.write('[argument identification]\tP={:.3f}\tR={:.3f}\tF1={:.3f}\n'.format(argument_p_, argument_r_, argument_f1_))
+        fout.write(metric)
     os.remove("temp")
+    return metric
 
 
 if __name__ == "__main__":
@@ -157,6 +159,9 @@ if __name__ == "__main__":
     parser.add_argument("--trainset", type=str, default="data/train.json")
     parser.add_argument("--devset", type=str, default="data/dev.json")
     parser.add_argument("--testset", type=str, default="data/test.json")
+
+    parser.add_argument("--bot_token", type=str, default="")
+    parser.add_argument("--chat_id", type=str, default="")
 
     hp = parser.parse_args()
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -206,10 +211,14 @@ if __name__ == "__main__":
 
         fname = os.path.join(hp.logdir, str(epoch))
         print(f"=========eval dev at epoch={epoch}=========")
-        eval(model, dev_iter, fname + '_dev')
+        metric_dev = eval(model, dev_iter, fname + '_dev')
 
         print(f"=========eval test at epoch={epoch}=========")
-        eval(model, test_iter, fname + '_test')
+        metric_test = eval(model, test_iter, fname + '_test')
+
+        if hp.bot_token:
+            report_to_telegram('[epoch {}]\n{}'.format(epoch, metric_dev), hp.bot_token, hp.chat_id)
+            report_to_telegram('[epoch {}]\n{}'.format(epoch, metric_test), hp.bot_token, hp.chat_id)
 
         torch.save(model.state_dict(), "latest_model.pt")
         # print(f"weights were saved to {fname}.pt")

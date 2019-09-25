@@ -74,3 +74,11 @@ def find_triggers(labels):
                 break
 
     return [tuple(item) for item in result]
+
+
+def report_to_telegram(text, bot_token, chat_id):
+    try:
+        import requests
+        requests.get('https://api.telegram.org/bot{}/sendMessage?chat_id={}&text={}'.format(bot_token, chat_id, text))
+    except Exception as e:
+        print(e)
