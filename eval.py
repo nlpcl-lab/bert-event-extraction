@@ -102,6 +102,7 @@ def eval(model, iterator, fname):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--logdir", type=str, default="logdir")
+    parser.add_argument("--batch_size", type=int, default=24)
     parser.add_argument("--testset", type=str, default="data/test.json")
     parser.add_argument("--model_path", type=str, default="latest_model.pt")
 
