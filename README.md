@@ -38,8 +38,8 @@ python eval.py --model_path=latest_model.pt
 <table>
   <tr>
     <th rowspan="2">Method</th>
-    <th colspan="3">Trigger Classification (%)<br></th>
-    <th colspan="3">Argument Classification (%)<br></th>
+    <th colspan="3">Trigger Classification (%)</th>
+    <th colspan="3">Argument Classification (%)</th>
   </tr>
   <tr>
     <td>P</td>
@@ -68,7 +68,7 @@ python eval.py --model_path=latest_model.pt
     <td>60.3</td>
   </tr>
   <tr>
-    <td>This model</td>
+    <td>This model (BERT base)</td>
     <td>63.4</td>
     <td>71.1</td>
     <td>67.7</td>
