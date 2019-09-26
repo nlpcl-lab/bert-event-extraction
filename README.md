@@ -28,7 +28,7 @@ python train.py
 
 ### Evaluation
 ```
-python eval.py
+python eval.py --model_path=latest_model.pt
 ```
 
 ## Reference
