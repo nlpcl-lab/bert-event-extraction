@@ -78,7 +78,7 @@ def eval(model, iterator, fname):
     triggers_true = [(item[0], item[1], item[2]) for item in triggers_true]
     triggers_pred = [(item[0], item[1], item[2]) for item in triggers_pred]
     trigger_p_, trigger_r_, trigger_f1_ = calc_metric(triggers_true, triggers_pred)
-    print('P={:.3f}\tR={:.3f}\tF1={:.3f}'.format(trigger_p_, trigger_p_, trigger_f1_))
+    print('P={:.3f}\tR={:.3f}\tF1={:.3f}'.format(trigger_p_, trigger_r_, trigger_f1_))
 
     print('[argument identification]')
     arguments_true = [(item[0], item[1], item[2], item[3], item[4], item[5]) for item in arguments_true]
@@ -109,22 +109,14 @@ if __name__ == "__main__":
     hp = parser.parse_args()
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-    model = Net(
-        device=device,
-        trigger_size=len(all_triggers),
-        entity_size=len(all_entities),
-        all_postags=len(all_postags),
-        argument_size=len(all_arguments)
-    )
-    if device == 'cuda':
-        model = model.cuda()
-    
     if not os.path.exists(hp.model_path):
         print('Warning: There is no model on the path:', hp.model_path, 'Please check the model_path parameter')
 
-    model.load(hp.model_path)
+    model = torch.load(hp.model_path)
 
-    model = nn.DataParallel(model)
+    if device == 'cuda':
+        model = model.cuda()
+
     test_dataset = ACE2005Dataset(hp.testset)
 
     test_iter = data.DataLoader(dataset=test_dataset,

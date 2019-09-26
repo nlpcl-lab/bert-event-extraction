@@ -130,5 +130,5 @@ if __name__ == "__main__":
             report_to_telegram('[epoch {}] dev\n{}'.format(epoch, metric_dev), hp.telegram_bot_token, hp.telegram_chat_id)
             report_to_telegram('[epoch {}] test\n{}'.format(epoch, metric_test), hp.telegram_bot_token, hp.telegram_chat_id)
 
-        torch.save(model.state_dict(), "latest_model.pt")
+        torch.save(model, "latest_model.pt")
         # print(f"weights were saved to {fname}.pt")
