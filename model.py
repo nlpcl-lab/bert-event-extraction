@@ -18,30 +18,29 @@ class Net(nn.Module):
         self.postag_embed = nn.Embedding(num_embeddings=all_postags, embedding_dim=postag_embedding_dim)
         self.rnn = nn.LSTM(bidirectional=True, num_layers=1, input_size=768 + entity_embedding_dim, hidden_size=768 // 2, batch_first=True)
 
-        hidden_size = 768 + entity_embedding_dim + postag_embedding_dim
+        # hidden_size = 768 + entity_embedding_dim + postag_embedding_dim
+        hidden_size = 768
         self.fc1 = nn.Sequential(
-            nn.Dropout(0.5),
+            # nn.Dropout(0.5),
             nn.Linear(hidden_size, hidden_size, bias=True),
             nn.ReLU(),
         )
         self.fc_trigger = nn.Sequential(
-            nn.Dropout(0.3),
             nn.Linear(hidden_size, trigger_size),
         )
         self.fc_argument = nn.Sequential(
-            nn.Dropout(0.3),
             nn.Linear(hidden_size * 2, argument_size),
         )
         self.device = device
 
     def predict_triggers(self, tokens_x_2d, entities_x_3d, postags_x_2d, head_indexes_2d, triggers_y_2d, arguments_2d):
         tokens_x_2d = torch.LongTensor(tokens_x_2d).to(self.device)
-        postags_x_2d = torch.LongTensor(postags_x_2d).to(self.device)
+        # postags_x_2d = torch.LongTensor(postags_x_2d).to(self.device)
         triggers_y_2d = torch.LongTensor(triggers_y_2d).to(self.device)
         head_indexes_2d = torch.LongTensor(head_indexes_2d).to(self.device)
 
-        postags_x_2d = self.postag_embed(postags_x_2d)
-        entity_x_2d = self.entity_embed(entities_x_3d)
+        # postags_x_2d = self.postag_embed(postags_x_2d)
+        # entity_x_2d = self.entity_embed(entities_x_3d)
 
         if self.training:
             self.bert.train()
@@ -53,8 +52,9 @@ class Net(nn.Module):
                 encoded_layers, _ = self.bert(tokens_x_2d)
                 enc = encoded_layers[-1]
 
-        x = torch.cat([enc, entity_x_2d, postags_x_2d], 2)
-        x = self.fc1(x)  # x: [batch_size, seq_len, hidden_size]
+        # x = torch.cat([enc, entity_x_2d, postags_x_2d], 2)
+        # x = self.fc1(enc)  # x: [batch_size, seq_len, hidden_size]
+        x = enc
         # logits = self.fc2(x + enc)
 
         batch_size = tokens_x_2d.shape[0]
