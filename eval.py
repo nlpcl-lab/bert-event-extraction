@@ -118,6 +118,11 @@ if __name__ == "__main__":
     )
     if device == 'cuda':
         model = model.cuda()
+    
+    if not os.path.exists(hp.model_path):
+        print('Warning: There is no model on the path:', hp.model_path, 'Please check the model_path parameter')
+
+    model.load(hp.model_path)
 
     model = nn.DataParallel(model)
     test_dataset = ACE2005Dataset(hp.testset)
