@@ -42,11 +42,11 @@ python eval.py --model_path=latest_model.pt
     <th colspan="3">Argument Classification (%)</th>
   </tr>
   <tr>
-    <td>P</td>
-    <td>R</td>
+    <td>Precision</td>
+    <td>Recall</td>
     <td>F1</td>
-    <td>P</td>
-    <td>R</td>
+    <td>Precision</td>
+    <td>Recall</td>
     <td>F1</td>
   </tr>
   <tr>
@@ -77,6 +77,8 @@ python eval.py --model_path=latest_model.pt
     <td>40.0</td>
   </tr>
 </table>
+
+The performance of this model is low in argument classification even though pretrained BERT model was used. The model is currently being updated to improve the performance.
 
 ## Reference
 * Jointly Multiple Events Extraction via Attention-based Graph Information Aggregation (EMNLP 2018), Liu et al. [[paper]](https://arxiv.org/abs/1809.09078)
