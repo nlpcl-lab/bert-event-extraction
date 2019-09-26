@@ -31,6 +31,53 @@ python train.py
 python eval.py --model_path=latest_model.pt
 ```
 
+## Result
+
+### Performance
+
+<table>
+  <tr>
+    <th rowspan="2">Method</th>
+    <th colspan="3">Trigger Classification (%)<br></th>
+    <th colspan="3">Argument Classification (%)<br></th>
+  </tr>
+  <tr>
+    <td>P</td>
+    <td>R</td>
+    <td>F1</td>
+    <td>P</td>
+    <td>R</td>
+    <td>F1</td>
+  </tr>
+  <tr>
+    <td>JRNN</td>
+    <td>66.0</td>
+    <td>73.0</td>
+    <td>69.3</td>
+    <td>54.2</td>
+    <td>56.7</td>
+    <td>55.5</td>
+  </tr>
+  <tr>
+    <td>JMEE</td>
+    <td>76.3</td>
+    <td>71.3</td>
+    <td>73.7</td>
+    <td>66.8</td>
+    <td>54.9</td>
+    <td>60.3</td>
+  </tr>
+  <tr>
+    <td>This model</td>
+    <td>63.4</td>
+    <td>71.1</td>
+    <td>67.7</td>
+    <td>48.5</td>
+    <td>34.1</td>
+    <td>40.0</td>
+  </tr>
+</table>
+
 ## Reference
 * Jointly Multiple Events Extraction via Attention-based Graph Information Aggregation (EMNLP 2018), Liu et al. [[paper]](https://arxiv.org/abs/1809.09078)
 * lx865712528's EMNLP2018-JMEE repository [[github]](https://github.com/lx865712528/EMNLP2018-JMEE)
