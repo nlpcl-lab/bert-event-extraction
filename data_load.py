@@ -112,6 +112,20 @@ class ACE2005Dataset(data.Dataset):
 
         return tokens_x, entities_x, postags_x, triggers_y, arguments, seqlen, head_indexes, words, triggers
 
+    def get_samples_weight(self):
+        samples_weight = []
+        for triggers in self.triggers_li:
+            not_none = False
+            for trigger in triggers:
+                if trigger != NONE:
+                    not_none = True
+                    break
+            if not_none:
+                samples_weight.append(5)
+            else:
+                samples_weight.append(1)
+        return np.array(samples_weight)
+
 
 def pad(batch):
     tokens_x_2d, entities_x_3d, postags_x_2d, triggers_y_2d, arguments_2d, seqlens_1d, head_indexes_2d, words_2d, triggers_2d = list(map(list, zip(*batch)))

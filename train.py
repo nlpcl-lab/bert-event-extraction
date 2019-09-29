@@ -92,9 +92,14 @@ if __name__ == "__main__":
     dev_dataset = ACE2005Dataset(hp.devset)
     test_dataset = ACE2005Dataset(hp.testset)
 
+    samples_weight = train_dataset.get_samples_weight
+    samples_weight = samples_weight.double()
+    sampler = torch.utils.data.WeightedRandomSampler(samples_weight, len(samples_weight))
+
     train_iter = data.DataLoader(dataset=train_dataset,
                                  batch_size=hp.batch_size,
                                  shuffle=False,
+                                 sampler=sampler,
                                  num_workers=4,
                                  collate_fn=pad)
     dev_iter = data.DataLoader(dataset=dev_dataset,
