@@ -32,7 +32,7 @@ class ACE2005Dataset(data.Dataset):
                         # ex. (5, 6, "entity_type_str"), ...
                     ],
                     'events': {
-                        # ex. (1, 3, "trigger_type_str"): [(5, 6, "argument_role"), ...]
+                        # ex. (1, 3, "trigger_type_str"): [(5, 6, "argument_role_idx"), ...]
                     },
                 }
 
@@ -65,7 +65,7 @@ class ACE2005Dataset(data.Dataset):
                         role = argument['role']
                         if role.startswith('Time'):
                             role = role.split('-')[0]
-                        arguments['events'][event_key].append((argument['start'], argument['end'], role))
+                        arguments['events'][event_key].append((argument['start'], argument['end'], argument2idx[role]))
 
                 self.sent_li.append([CLS] + words + [SEP])
                 self.entities_li.append([[PAD]] + entities + [[PAD]])
@@ -98,11 +98,6 @@ class ACE2005Dataset(data.Dataset):
             tokens_x.extend(tokens_xx), postags_x.extend(p), entities_x.extend(e), is_heads.extend(is_head)
 
         triggers_y = [trigger2idx[t] for t in triggers]
-        for event in arguments['events']:
-            for i in range(len(arguments['events'][event])):
-                argument = arguments['events'][event][i]
-                arguments['events'][event][i] = (argument[0], argument[1], argument2idx[argument[2]])
-
         head_indexes = []
         for i in range(len(is_heads)):
             if is_heads[i]:
@@ -121,9 +116,9 @@ class ACE2005Dataset(data.Dataset):
                     not_none = True
                     break
             if not_none:
-                samples_weight.append(5)
+                samples_weight.append(5.0)
             else:
-                samples_weight.append(1)
+                samples_weight.append(1.0)
         return np.array(samples_weight)
 
 
