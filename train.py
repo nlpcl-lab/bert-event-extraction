@@ -65,7 +65,7 @@ def train(model, iterator, optimizer, criterion):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--batch_size", type=int, default=26)
+    parser.add_argument("--batch_size", type=int, default=64)
     parser.add_argument("--lr", type=float, default=0.00002)  # 0.00002
     parser.add_argument("--n_epochs", type=int, default=100)
     parser.add_argument("--logdir", type=str, default="logdir")
@@ -127,10 +127,10 @@ if __name__ == "__main__":
         train(model, train_iter, optimizer, criterion)
 
         fname = os.path.join(hp.logdir, str(epoch))
-        print(f"=========eval dev at epoch={epoch}=========")
+        print("=========eval dev at epoch={}=========".format(epoch))
         metric_dev = eval(model, dev_iter, fname + '_dev')
 
-        print(f"=========eval test at epoch={epoch}=========")
+        print("=========eval test at epoch={}=========".format(epoch))
         metric_test = eval(model, test_iter, fname + '_test')
 
         if hp.telegram_bot_token:

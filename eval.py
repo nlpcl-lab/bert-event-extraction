@@ -43,7 +43,7 @@ def eval(model, iterator, fname):
 
     with open('temp', 'w') as fout:
         for i, (words, triggers, triggers_hat, arguments, arguments_hat) in enumerate(zip(words_all, triggers_all, triggers_hat_all, arguments_all, arguments_hat_all)):
-            triggers_hat = triggers_hat[1:len(words)]
+            triggers_hat = triggers_hat[:len(words) - 1]
             triggers_hat = [idx2trigger[hat] for hat in triggers_hat]
 
             assert len(triggers) == len(triggers_hat), "len(triggers)={}, len(triggers_hat)={}".format(len(triggers), len(triggers_hat))
@@ -137,5 +137,5 @@ if __name__ == "__main__":
     if not os.path.exists(hp.logdir):
         os.makedirs(hp.logdir)
 
-    print(f"=========eval test=========")
+    print("=========eval test=========")
     eval(model, test_iter, 'eval_test')

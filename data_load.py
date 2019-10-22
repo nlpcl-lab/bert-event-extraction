@@ -120,7 +120,7 @@ class ACE2005Dataset(data.Dataset):
                     not_none = True
                     break
             if not_none:
-                samples_weight.append(5.0)
+                samples_weight.append(3.0)
             else:
                 samples_weight.append(1.0)
         return np.array(samples_weight)
