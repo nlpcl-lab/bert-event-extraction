@@ -40,10 +40,13 @@ def eval(model, iterator, fname):
 
     triggers_true, triggers_pred, arguments_true, arguments_pred = [], [], [], []
     triggers_true_report, triggers_pred_report = [], []
+
     with open('temp', 'w') as fout:
         for i, (words, triggers, triggers_hat, arguments, arguments_hat) in enumerate(zip(words_all, triggers_all, triggers_hat_all, arguments_all, arguments_hat_all)):
-            triggers_hat = triggers_hat[:len(words)]
+            triggers_hat = triggers_hat[1:len(words)]
             triggers_hat = [idx2trigger[hat] for hat in triggers_hat]
+
+            assert len(triggers) == len(triggers_hat), "len(triggers)={}, len(triggers_hat)={}".format(len(triggers), len(triggers_hat))
 
             # [(ith sentence, t_start, t_end, t_type_str)]
             triggers_true.extend([(i, *item) for item in find_triggers(triggers)])
@@ -71,7 +74,7 @@ def eval(model, iterator, fname):
             triggers_true_report.extend(triggers)
             triggers_pred_report.extend(triggers_hat)
 
-    print(metrics.classification_report([idx2trigger[idx] for idx in triggers_true_report], [idx2trigger[idx] for idx in triggers_pred_report]))
+    print(metrics.classification_report([trigger for trigger in triggers_true_report], [trigger for trigger in triggers_pred_report]))
 
     print('[trigger classification]')
     trigger_p, trigger_r, trigger_f1 = calc_metric(triggers_true, triggers_pred)
