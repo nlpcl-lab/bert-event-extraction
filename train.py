@@ -5,6 +5,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils import data
+from pytorch_pretrained_bert import BertAdam
 
 from model import Net
 
@@ -25,18 +26,20 @@ def train(model, iterator, optimizer, criterion):
         trigger_logits = trigger_logits.view(-1, trigger_logits.shape[-1])
         trigger_loss = criterion(trigger_logits, triggers_y_2d.view(-1))
 
-        if len(argument_keys) > 0:
-            argument_logits, arguments_y_1d, argument_hat_1d, argument_hat_2d = model.module.predict_arguments(argument_hidden, argument_keys, arguments_2d)
-            argument_loss = criterion(argument_logits, arguments_y_1d)
-            loss = trigger_loss + 2 * argument_loss
-            if i == 0:
-                print("=====sanity check for arguments======")
-                print('arguments_y_1d:', arguments_y_1d)
-                print("arguments_2d[0]:", arguments_2d[0]['events'])
-                print("argument_hat_2d[0]:", argument_hat_2d[0]['events'])
-                print("=======================")
-        else:
-            loss = trigger_loss
+        # if len(argument_keys) > 0:
+        #     argument_logits, arguments_y_1d, argument_hat_1d, argument_hat_2d = model.module.predict_arguments(argument_hidden, argument_keys, arguments_2d)
+        #     argument_loss = criterion(argument_logits, arguments_y_1d)
+        #     loss = trigger_loss + 2 * argument_loss
+        #     if i == 0:
+        #         print("=====sanity check for arguments======")
+        #         print('arguments_y_1d:', arguments_y_1d)
+        #         print("arguments_2d[0]:", arguments_2d[0]['events'])
+        #         print("argument_hat_2d[0]:", argument_hat_2d[0]['events'])
+        #         print("=======================")
+        # else:
+        #     loss = trigger_loss
+
+        loss = trigger_loss
 
         nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         loss.backward()
@@ -62,9 +65,9 @@ def train(model, iterator, optimizer, criterion):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--batch_size", type=int, default=24)
-    parser.add_argument("--lr", type=float, default=0.00002)
-    parser.add_argument("--n_epochs", type=int, default=50)
+    parser.add_argument("--batch_size", type=int, default=26)
+    parser.add_argument("--lr", type=float, default=0.00002)  # 0.00002
+    parser.add_argument("--n_epochs", type=int, default=100)
     parser.add_argument("--logdir", type=str, default="logdir")
     parser.add_argument("--trainset", type=str, default="data/train.json")
     parser.add_argument("--devset", type=str, default="data/dev.json")
@@ -112,9 +115,9 @@ if __name__ == "__main__":
                                 num_workers=4,
                                 collate_fn=pad)
 
-    optimizer = optim.Adam(model.parameters(), lr=hp.lr)
+    # optimizer = optim.Adam(model.parameters(), lr=hp.lr)
     # optimizer = optim.Adadelta(model.parameters(), lr=1.0, weight_decay=1e-2)
-
+    optimizer = BertAdam(model.parameters(), lr=hp.lr)
     criterion = nn.CrossEntropyLoss(ignore_index=0)
 
     if not os.path.exists(hp.logdir):

@@ -11,18 +11,18 @@ from utils import find_triggers
 
 
 class Net(nn.Module):
-    def __init__(self, trigger_size=None, entity_size=None, all_postags=None, postag_embedding_dim=50, argument_size=None, entity_embedding_dim=50, device=torch.device("cpu")):
+    def __init__(self, trigger_size=None, entity_size=None, all_postags=None, postag_embedding_dim=50, argument_size=None, entity_embedding_dim=50, finetune=True, device=torch.device("cpu")):
         super().__init__()
         self.bert = BertModel.from_pretrained('bert-base-cased')
         self.entity_embed = MultiLabelEmbeddingLayer(num_embeddings=entity_size, embedding_dim=entity_embedding_dim, device=device)
         self.postag_embed = nn.Embedding(num_embeddings=all_postags, embedding_dim=postag_embedding_dim)
-        self.rnn = nn.LSTM(bidirectional=True, num_layers=1, input_size=768 + entity_embedding_dim, hidden_size=768 // 2, batch_first=True)
+        self.rnn = nn.LSTM(bidirectional=True, num_layers=1, input_size=768, hidden_size=768 // 2, batch_first=True)
 
         # hidden_size = 768 + entity_embedding_dim + postag_embedding_dim
         hidden_size = 768
         self.fc1 = nn.Sequential(
-            # nn.Dropout(0.5),
-            nn.Linear(hidden_size, hidden_size, bias=True),
+            nn.Dropout(0.3),
+            nn.Linear(hidden_size, hidden_size),
             nn.ReLU(),
         )
         self.fc_trigger = nn.Sequential(
@@ -32,6 +32,7 @@ class Net(nn.Module):
             nn.Linear(hidden_size * 2, argument_size),
         )
         self.device = device
+        self.finetune = finetune
 
     def predict_triggers(self, tokens_x_2d, entities_x_3d, postags_x_2d, head_indexes_2d, triggers_y_2d, arguments_2d):
         tokens_x_2d = torch.LongTensor(tokens_x_2d).to(self.device)
@@ -42,7 +43,7 @@ class Net(nn.Module):
         # postags_x_2d = self.postag_embed(postags_x_2d)
         # entity_x_2d = self.entity_embed(entities_x_3d)
 
-        if self.training:
+        if self.training and self.finetune:
             self.bert.train()
             encoded_layers, _ = self.bert(tokens_x_2d)
             enc = encoded_layers[-1]
@@ -61,6 +62,8 @@ class Net(nn.Module):
 
         for i in range(batch_size):
             x[i] = torch.index_select(x[i], 0, head_indexes_2d[i])
+
+        # x, (h_n, c_n) = self.rnn(x)
 
         trigger_logits = self.fc_trigger(x)
         trigger_hat_2d = trigger_logits.argmax(-1)

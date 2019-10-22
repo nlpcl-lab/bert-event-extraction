@@ -67,9 +67,13 @@ class ACE2005Dataset(data.Dataset):
                             role = role.split('-')[0]
                         arguments['events'][event_key].append((argument['start'], argument['end'], argument2idx[role]))
 
-                self.sent_li.append([CLS] + words + [SEP])
-                self.entities_li.append([[PAD]] + entities + [[PAD]])
-                self.postags_li.append([PAD] + postags + [PAD])
+                # self.sent_li.append([CLS] + words + [SEP])
+                # self.entities_li.append([[PAD]] + entities + [[PAD]])
+                # self.postags_li.append([PAD] + postags + [PAD])
+                self.sent_li.append([CLS] + words)
+                self.entities_li.append([[PAD]] + entities)
+                self.postags_li.append([PAD] + postags)
+
                 self.triggers_li.append(triggers)
                 self.arguments_li.append(arguments)
 

@@ -6,6 +6,8 @@ import torch.nn as nn
 from torch.utils import data
 
 from model import Net
+from sklearn import metrics
+import numpy as np
 
 from data_load import ACE2005Dataset, pad, all_triggers, all_entities, all_postags, idx2trigger, all_arguments
 from utils import calc_metric, find_triggers
@@ -37,6 +39,7 @@ def eval(model, iterator, fname):
                 arguments_hat_all.extend(argument_hat_2d)
 
     triggers_true, triggers_pred, arguments_true, arguments_pred = [], [], [], []
+    triggers_true_report, triggers_pred_report = [], []
     with open('temp', 'w') as fout:
         for i, (words, triggers, triggers_hat, arguments, arguments_hat) in enumerate(zip(words_all, triggers_all, triggers_hat_all, arguments_all, arguments_hat_all)):
             triggers_hat = triggers_hat[:len(words)]
@@ -59,37 +62,40 @@ def eval(model, iterator, fname):
                     a_start, a_end, a_type_idx = argument
                     arguments_pred.append((i, t_start, t_end, t_type_str, a_start, a_end, a_type_idx))
 
-            for w, t, t_h in zip(words[1:-1], triggers, triggers_hat):
+            for w, t, t_h in zip(words[1:], triggers, triggers_hat):
                 fout.write('{}\t{}\t{}\n'.format(w, t, t_h))
             fout.write('#arguments#{}\n'.format(arguments['events']))
             fout.write('#arguments_hat#{}\n'.format(arguments_hat['events']))
             fout.write("\n")
 
-    # print(classification_report([idx2trigger[idx] for idx in y_true], [idx2trigger[idx] for idx in y_pred]))
+            triggers_true_report.extend(triggers)
+            triggers_pred_report.extend(triggers_hat)
+
+    print(metrics.classification_report([idx2trigger[idx] for idx in triggers_true_report], [idx2trigger[idx] for idx in triggers_pred_report]))
 
     print('[trigger classification]')
     trigger_p, trigger_r, trigger_f1 = calc_metric(triggers_true, triggers_pred)
     print('P={:.3f}\tR={:.3f}\tF1={:.3f}'.format(trigger_p, trigger_r, trigger_f1))
 
-    print('[argument classification]')
-    argument_p, argument_r, argument_f1 = calc_metric(arguments_true, arguments_pred)
-    print('P={:.3f}\tR={:.3f}\tF1={:.3f}'.format(argument_p, argument_r, argument_f1))
+    # print('[argument classification]')
+    # argument_p, argument_r, argument_f1 = calc_metric(arguments_true, arguments_pred)
+    # print('P={:.3f}\tR={:.3f}\tF1={:.3f}'.format(argument_p, argument_r, argument_f1))
     print('[trigger identification]')
     triggers_true = [(item[0], item[1], item[2]) for item in triggers_true]
     triggers_pred = [(item[0], item[1], item[2]) for item in triggers_pred]
     trigger_p_, trigger_r_, trigger_f1_ = calc_metric(triggers_true, triggers_pred)
     print('P={:.3f}\tR={:.3f}\tF1={:.3f}'.format(trigger_p_, trigger_r_, trigger_f1_))
 
-    print('[argument identification]')
-    arguments_true = [(item[0], item[1], item[2], item[3], item[4], item[5]) for item in arguments_true]
-    arguments_pred = [(item[0], item[1], item[2], item[3], item[4], item[5]) for item in arguments_pred]
-    argument_p_, argument_r_, argument_f1_ = calc_metric(arguments_true, arguments_pred)
-    print('P={:.3f}\tR={:.3f}\tF1={:.3f}'.format(argument_p_, argument_r_, argument_f1_))
+    # print('[argument identification]')
+    # arguments_true = [(item[0], item[1], item[2], item[3], item[4], item[5]) for item in arguments_true]
+    # arguments_pred = [(item[0], item[1], item[2], item[3], item[4], item[5]) for item in arguments_pred]
+    # argument_p_, argument_r_, argument_f1_ = calc_metric(arguments_true, arguments_pred)
+    # print('P={:.3f}\tR={:.3f}\tF1={:.3f}'.format(argument_p_, argument_r_, argument_f1_))
 
     metric = '[trigger classification]\tP={:.3f}\tR={:.3f}\tF1={:.3f}\n'.format(trigger_p, trigger_r, trigger_f1)
-    metric += '[argument classification]\tP={:.3f}\tR={:.3f}\tF1={:.3f}\n'.format(argument_p, argument_r, argument_f1)
+    # metric += '[argument classification]\tP={:.3f}\tR={:.3f}\tF1={:.3f}\n'.format(argument_p, argument_r, argument_f1)
     metric += '[trigger identification]\tP={:.3f}\tR={:.3f}\tF1={:.3f}\n'.format(trigger_p_, trigger_r_, trigger_f1_)
-    metric += '[argument identification]\tP={:.3f}\tR={:.3f}\tF1={:.3f}\n'.format(argument_p_, argument_r_, argument_f1_)
+    # metric += '[argument identification]\tP={:.3f}\tR={:.3f}\tF1={:.3f}\n'.format(argument_p_, argument_r_, argument_f1_)
     final = fname + ".P%.2f_R%.2f_F%.2f" % (trigger_p, trigger_r, trigger_f1)
     with open(final, 'w') as fout:
         result = open("temp", "r").read()
