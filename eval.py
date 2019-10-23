@@ -14,6 +14,8 @@ from utils import calc_metric, find_triggers
 
 
 def eval(model, iterator, fname):
+    import time
+    start = time.time()
     model.eval()
 
     words_all, triggers_all, triggers_hat_all, arguments_all, arguments_hat_all = [], [], [], [], []
@@ -76,18 +78,20 @@ def eval(model, iterator, fname):
 
     print(metrics.classification_report([trigger for trigger in triggers_true_report], [trigger for trigger in triggers_pred_report]))
 
-    print('[trigger classification]')
+    print('[Evaluation] trigger classification')
     trigger_p, trigger_r, trigger_f1 = calc_metric(triggers_true, triggers_pred)
-    print('P={:.3f}\tR={:.3f}\tF1={:.3f}'.format(trigger_p, trigger_r, trigger_f1))
+    print('Precision={:.3f}\tRecall={:.3f}\tF1-score={:.3f}'.format(trigger_p, trigger_r, trigger_f1))
 
     # print('[argument classification]')
     # argument_p, argument_r, argument_f1 = calc_metric(arguments_true, arguments_pred)
     # print('P={:.3f}\tR={:.3f}\tF1={:.3f}'.format(argument_p, argument_r, argument_f1))
-    print('[trigger identification]')
+    print()
+    print('[Evaluation] trigger identification')
     triggers_true = [(item[0], item[1], item[2]) for item in triggers_true]
     triggers_pred = [(item[0], item[1], item[2]) for item in triggers_pred]
     trigger_p_, trigger_r_, trigger_f1_ = calc_metric(triggers_true, triggers_pred)
-    print('P={:.3f}\tR={:.3f}\tF1={:.3f}'.format(trigger_p_, trigger_r_, trigger_f1_))
+    print('Precision={:.3f}\tRecall={:.3f}\tF1-score={:.3f}'.format(trigger_p_, trigger_r_, trigger_f1_))
+    print('Total processing time:{:.3f}sec'.format(time.time() - start))
 
     # print('[argument identification]')
     # arguments_true = [(item[0], item[1], item[2], item[3], item[4], item[5]) for item in arguments_true]
@@ -98,6 +102,7 @@ def eval(model, iterator, fname):
     metric = '[trigger classification]\tP={:.3f}\tR={:.3f}\tF1={:.3f}\n'.format(trigger_p, trigger_r, trigger_f1)
     # metric += '[argument classification]\tP={:.3f}\tR={:.3f}\tF1={:.3f}\n'.format(argument_p, argument_r, argument_f1)
     metric += '[trigger identification]\tP={:.3f}\tR={:.3f}\tF1={:.3f}\n'.format(trigger_p_, trigger_r_, trigger_f1_)
+    print('Total processing time:{:.3f}sec'.format(time.time() - start))
     # metric += '[argument identification]\tP={:.3f}\tR={:.3f}\tF1={:.3f}\n'.format(argument_p_, argument_r_, argument_f1_)
     final = fname + ".P%.2f_R%.2f_F%.2f" % (trigger_p, trigger_r, trigger_f1)
     with open(final, 'w') as fout:
